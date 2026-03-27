@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Word/phrase highlighting in reader */
+.chunk-content [data-word] {
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background-color 0.15s;
+}
+
+.chunk-content [data-word]:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+.chunk-content [data-word]:active {
+  background-color: rgba(59, 130, 246, 0.2);
+}
+
+/* Vocab status highlighting */
+.chunk-content .word-new {
+  border-bottom: 2px solid #3b82f6;
+}
+
+.chunk-content .word-learning {
+  border-bottom: 2px solid #eab308;
+}
+
+/* Ruby text styling for CJK */
+.chunk-content ruby rt {
+  font-size: 0.5em;
+  color: #6b7280;
+}
+
+/* Reader prose spacing */
+.chunk-content p {
+  margin-bottom: 1em;
+}
+
+.chunk-content h1,
+.chunk-content h2,
+.chunk-content h3,
+.chunk-content h4 {
+  font-weight: bold;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.chunk-content h1 { font-size: 1.5em; }
+.chunk-content h2 { font-size: 1.3em; }
+.chunk-content h3 { font-size: 1.15em; }
+
+.chunk-content blockquote {
+  border-left: 3px solid #d1d5db;
+  padding-left: 1em;
+  color: #6b7280;
+  margin: 1em 0;
+}
