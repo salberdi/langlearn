@@ -1,12 +1,7 @@
-import Database from 'better-sqlite3';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
 import * as schema from './schema';
-import path from 'path';
 
-const dbPath = path.join(process.cwd(), 'data', 'langlearn.db');
-const sqlite = new Database(dbPath);
-sqlite.pragma('journal_mode = WAL');
-sqlite.pragma('foreign_keys = ON');
-
-export const db = drizzle(sqlite, { schema });
+const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 10 });
+export const db = drizzle(pool, { schema });
 export type DB = typeof db;

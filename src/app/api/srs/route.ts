@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { srsCards, phrases } from '@/db/schema';
-import { eq, lte } from 'drizzle-orm';
+import { and, eq, lte } from 'drizzle-orm';
+import { getRequiredUser } from '@/lib/auth-helpers';
 
 export async function GET(request: NextRequest) {
+  const { user, errorResponse } = await getRequiredUser();
+  if (errorResponse) return errorResponse;
+
   const limit = parseInt(request.nextUrl.searchParams.get('limit') ?? '20', 10);
 
   const now = new Date();
 
   // Due cards
-  const dueCards = db
+  const dueCards = await db
     .select({
       card_id: srsCards.id,
       phrase_id: srsCards.phrase_id,
@@ -28,15 +32,17 @@ export async function GET(request: NextRequest) {
     })
     .from(srsCards)
     .innerJoin(phrases, eq(srsCards.phrase_id, phrases.id))
-    .where(lte(srsCards.due_at, now))
-    .limit(limit)
-    .all();
+    .where(and(eq(srsCards.user_id, user.id), lte(srsCards.due_at, now)))
+    .limit(limit);
 
   return NextResponse.json(dueCards);
 }
 
 // Create a new SRS card for a phrase
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await getRequiredUser();
+  if (errorResponse) return errorResponse;
+
   const body = await request.json();
   const { phrase_id, mode } = body;
 
@@ -50,16 +56,17 @@ export async function POST(request: NextRequest) {
   const now = new Date();
   const dueAt = new Date(now.getTime() + 86400_000); // due in 1 day
 
-  const result = db
+  const rows = await db
     .insert(srsCards)
     .values({
+      user_id: user.id,
       phrase_id,
       mode,
       due_at: dueAt,
       created_at: now,
     })
-    .returning()
-    .get();
+    .returning();
+  const result = rows[0];
 
   return NextResponse.json(result);
 }

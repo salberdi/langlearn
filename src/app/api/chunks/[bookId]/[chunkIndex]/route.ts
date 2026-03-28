@@ -3,19 +3,27 @@ import { db } from '@/db';
 import { chunks, readingProgress } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { translateChunk } from '@/lib/translation';
+import { getRequiredUser, verifyBookOwnership } from '@/lib/auth-helpers';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: { bookId: string; chunkIndex: string } }
 ) {
+  const { user, errorResponse } = await getRequiredUser();
+  if (errorResponse) return errorResponse;
+
   const bookId = parseInt(params.bookId, 10);
   const chunkIndex = parseInt(params.chunkIndex, 10);
 
-  const chunk = db
+  const { error } = await verifyBookOwnership(bookId, user.id);
+  if (error) return error;
+
+  const chunkRows = await db
     .select()
     .from(chunks)
     .where(and(eq(chunks.book_id, bookId), eq(chunks.chunk_index, chunkIndex)))
-    .get();
+    .limit(1);
+  const chunk = chunkRows[0];
 
   if (!chunk) {
     return NextResponse.json({ error: 'Chunk not found' }, { status: 404 });
@@ -37,10 +45,9 @@ export async function GET(
   if (chunk.translation_status === 'pending' || chunk.translation_status === 'error') {
     // Reset error status to pending before retrying
     if (chunk.translation_status === 'error') {
-      db.update(chunks)
+      await db.update(chunks)
         .set({ translation_status: 'pending' })
-        .where(eq(chunks.id, chunk.id))
-        .run();
+        .where(eq(chunks.id, chunk.id));
     }
 
     try {
@@ -77,12 +84,18 @@ export async function POST(
   request: NextRequest,
   { params }: { params: { bookId: string; chunkIndex: string } }
 ) {
+  const { user, errorResponse } = await getRequiredUser();
+  if (errorResponse) return errorResponse;
+
   const bookId = parseInt(params.bookId, 10);
   const chunkIndex = parseInt(params.chunkIndex, 10);
+
+  const { error } = await verifyBookOwnership(bookId, user.id);
+  if (error) return error;
   const body = await request.json();
   const scrollY = body.scroll_y ?? 0;
 
-  db.insert(readingProgress)
+  await db.insert(readingProgress)
     .values({
       book_id: bookId,
       chunk_index: chunkIndex,
@@ -96,8 +109,7 @@ export async function POST(
         scroll_y: scrollY,
         updated_at: new Date(),
       },
-    })
-    .run();
+    });
 
   return NextResponse.json({ success: true });
 }

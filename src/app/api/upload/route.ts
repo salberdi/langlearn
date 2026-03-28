@@ -4,6 +4,7 @@ import { books, chunks } from '@/db/schema';
 import { parseEpub, parseTxt } from '@/lib/epub-parser';
 import { chunkHtml } from '@/lib/chunker';
 import { MODELS } from '@/lib/models';
+import { getRequiredUser } from '@/lib/auth-helpers';
 import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic();
@@ -30,6 +31,9 @@ async function detectLanguage(text: string): Promise<string> {
 }
 
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await getRequiredUser();
+  if (errorResponse) return errorResponse;
+
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
   const studyLang = formData.get('study_lang') as string | null;
@@ -104,9 +108,10 @@ export async function POST(request: NextRequest) {
   const rtl = isRtl(studyLang);
 
   // Insert book
-  const bookResult = db
+  const bookRows = await db
     .insert(books)
     .values({
+      user_id: user.id,
       title: parsed.title || file.name.replace(/\.[^.]+$/, ''),
       author: parsed.author || null,
       document_lang: documentLang,
@@ -119,24 +124,21 @@ export async function POST(request: NextRequest) {
       created_at: now,
       updated_at: now,
     })
-    .returning()
-    .get();
+    .returning();
+  const bookResult = bookRows[0];
 
   // Insert chunks
-  for (let i = 0; i < contentChunks.length; i++) {
-    const chunk = contentChunks[i];
-    db.insert(chunks)
-      .values({
-        book_id: bookResult.id,
-        chunk_index: i,
-        source_html: chunk.html,
-        start_char_offset: chunk.startCharOffset,
-        end_char_offset: chunk.endCharOffset,
-        word_count: chunk.wordCount,
-        created_at: now,
-      })
-      .run();
-  }
+  await db.insert(chunks).values(
+    contentChunks.map((chunk, i) => ({
+      book_id: bookResult.id,
+      chunk_index: i,
+      source_html: chunk.html,
+      start_char_offset: chunk.startCharOffset,
+      end_char_offset: chunk.endCharOffset,
+      word_count: chunk.wordCount,
+      created_at: now,
+    }))
+  );
 
   return NextResponse.json({
     id: bookResult.id,

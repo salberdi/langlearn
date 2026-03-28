@@ -1,6 +1,6 @@
 import { db } from '@/db';
 import { books, chunks, translationMemory, termGlossary } from '@/db/schema';
-import { eq, and, desc } from 'drizzle-orm';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import { MODELS } from './models';
 import { getLanguageName } from './languages';
 import Anthropic from '@anthropic-ai/sdk';
@@ -51,7 +51,7 @@ ${translatedText}`,
     .filter((pair) => pair.length === 2 && pair[0] && pair[1]);
 
   for (const [source, translated] of pairs) {
-    db.insert(translationMemory)
+    await db.insert(translationMemory)
       .values({
         book_id: book.id,
         source_phrase: source,
@@ -60,21 +60,9 @@ ${translatedText}`,
       .onConflictDoUpdate({
         target: [translationMemory.book_id, translationMemory.source_phrase],
         set: {
-          frequency: db
-            .select({ f: translationMemory.frequency })
-            .from(translationMemory)
-            .where(
-              and(
-                eq(translationMemory.book_id, book.id),
-                eq(translationMemory.source_phrase, source)
-              )
-            )
-            .get()
-            ? undefined
-            : undefined,
+          frequency: sql`${translationMemory.frequency} + 1`,
         },
-      })
-      .run();
+      });
   }
 }
 
@@ -154,7 +142,8 @@ async function pollForTranslation(
   const STALE_SECONDS = 300;
   for (let i = 0; i < 90; i++) {
     await sleep(2000);
-    const c = db.select().from(chunks).where(eq(chunks.id, chunkId)).get()!;
+    const rows = await db.select().from(chunks).where(eq(chunks.id, chunkId)).limit(1);
+    const c = rows[0]!;
     if (c.translation_status === 'complete') {
       return {
         translatedHtml: c.translated_html!,
@@ -169,10 +158,9 @@ async function pollForTranslation(
       (c.translation_started_at ?? 0) < unixNow() - STALE_SECONDS
     ) {
       // Stale lock — reset and retry
-      db.update(chunks)
+      await db.update(chunks)
         .set({ translation_status: 'pending' })
-        .where(eq(chunks.id, chunkId))
-        .run();
+        .where(eq(chunks.id, chunkId));
       return translateChunk(chunkId);
     }
   }
@@ -183,22 +171,19 @@ export async function translateChunk(
   chunkId: number
 ): Promise<TranslateResult> {
   // Optimistic lock
-  const locked = db
+  const locked = await db
     .update(chunks)
     .set({
       translation_status: 'in_progress',
       translation_started_at: unixNow(),
     })
     .where(and(eq(chunks.id, chunkId), eq(chunks.translation_status, 'pending')))
-    .run();
+    .returning({ id: chunks.id });
 
-  if (locked.changes === 0) {
+  if (locked.length === 0) {
     // Another process is translating — check if complete or poll
-    const existing = db
-      .select()
-      .from(chunks)
-      .where(eq(chunks.id, chunkId))
-      .get();
+    const rows = await db.select().from(chunks).where(eq(chunks.id, chunkId)).limit(1);
+    const existing = rows[0];
     if (existing?.translation_status === 'complete') {
       return {
         translatedHtml: existing.translated_html!,
@@ -209,15 +194,13 @@ export async function translateChunk(
   }
 
   try {
-    const chunk = db.select().from(chunks).where(eq(chunks.id, chunkId)).get()!;
-    const book = db
-      .select()
-      .from(books)
-      .where(eq(books.id, chunk.book_id))
-      .get()!;
+    const chunkRows = await db.select().from(chunks).where(eq(chunks.id, chunkId)).limit(1);
+    const chunk = chunkRows[0]!;
+    const bookRows = await db.select().from(books).where(eq(books.id, chunk.book_id)).limit(1);
+    const book = bookRows[0]!;
 
     // Lazy TM extraction for previous chunk
-    const prevChunk = db
+    const prevChunkRows = await db
       .select()
       .from(chunks)
       .where(
@@ -227,29 +210,27 @@ export async function translateChunk(
           eq(chunks.tm_extracted, false)
         )
       )
-      .get();
+      .limit(1);
+    const prevChunk = prevChunkRows[0];
 
     if (prevChunk?.translated_html) {
       await extractTM(prevChunk, book);
-      db.update(chunks)
+      await db.update(chunks)
         .set({ tm_extracted: true })
-        .where(eq(chunks.id, prevChunk.id))
-        .run();
+        .where(eq(chunks.id, prevChunk.id));
     }
 
     // Build TM + glossary for prompt
-    const tmEntries = db
+    const tmEntries = await db
       .select()
       .from(translationMemory)
       .where(eq(translationMemory.book_id, book.id))
       .orderBy(desc(translationMemory.frequency))
-      .limit(30)
-      .all();
-    const glossaryEntries = db
+      .limit(30);
+    const glossaryEntries = await db
       .select()
       .from(termGlossary)
-      .where(eq(termGlossary.book_id, book.id))
-      .all();
+      .where(eq(termGlossary.book_id, book.id));
 
     // Translate
     const translatedHtml = await callClaudeTranslation(
@@ -273,21 +254,19 @@ export async function translateChunk(
     }
 
     // Persist
-    db.update(chunks)
+    await db.update(chunks)
       .set({
         translated_html: translatedHtml,
         tokens_json: tokensJson,
         translation_status: 'complete',
       })
-      .where(eq(chunks.id, chunkId))
-      .run();
+      .where(eq(chunks.id, chunkId));
 
     return { translatedHtml, tokensJson };
   } catch (error) {
-    db.update(chunks)
+    await db.update(chunks)
       .set({ translation_status: 'error' })
-      .where(eq(chunks.id, chunkId))
-      .run();
+      .where(eq(chunks.id, chunkId));
     throw error;
   }
 }

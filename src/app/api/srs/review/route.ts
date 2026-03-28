@@ -3,9 +3,13 @@ import { db } from '@/db';
 import { srsCards, streaks } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { sm2 } from '@/lib/sm2';
+import { getRequiredUser } from '@/lib/auth-helpers';
 import type { SRSQuality } from '@/types';
 
 export async function POST(request: NextRequest) {
+  const { user, errorResponse } = await getRequiredUser();
+  if (errorResponse) return errorResponse;
+
   const body = await request.json();
   const { card_id, quality } = body as { card_id: number; quality: SRSQuality };
 
@@ -16,14 +20,19 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const card = db
+  const cardRows = await db
     .select()
     .from(srsCards)
     .where(eq(srsCards.id, card_id))
-    .get();
+    .limit(1);
+  const card = cardRows[0];
 
   if (!card) {
     return NextResponse.json({ error: 'Card not found' }, { status: 404 });
+  }
+
+  if (card.user_id !== user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const updated = sm2(
@@ -36,18 +45,17 @@ export async function POST(request: NextRequest) {
     quality
   );
 
-  db.update(srsCards)
+  await db.update(srsCards)
     .set({
       ease_factor: updated.ease_factor,
       interval_days: updated.interval_days,
       repetitions: updated.repetitions,
       due_at: updated.due_at,
     })
-    .where(eq(srsCards.id, card_id))
-    .run();
+    .where(eq(srsCards.id, card_id));
 
   // Update streak
-  updateStreak();
+  await updateStreak(user.id);
 
   return NextResponse.json({
     card_id,
@@ -57,18 +65,18 @@ export async function POST(request: NextRequest) {
   });
 }
 
-function updateStreak(): void {
+async function updateStreak(userId: string): Promise<void> {
   const today = new Date().toISOString().split('T')[0];
   const yesterday = new Date(Date.now() - 86400_000)
     .toISOString()
     .split('T')[0];
 
-  const streak = db.select().from(streaks).get();
+  const streakRows = await db.select().from(streaks).where(eq(streaks.user_id, userId)).limit(1);
+  const streak = streakRows[0];
 
   if (!streak) {
-    db.insert(streaks)
-      .values({ current_streak: 1, longest_streak: 1, last_active_date: today })
-      .run();
+    await db.insert(streaks)
+      .values({ user_id: userId, current_streak: 1, longest_streak: 1, last_active_date: today });
     return;
   }
 
@@ -81,12 +89,11 @@ function updateStreak(): void {
 
   const newLongest = Math.max(newStreak, streak.longest_streak ?? 0);
 
-  db.update(streaks)
+  await db.update(streaks)
     .set({
       current_streak: newStreak,
       longest_streak: newLongest,
       last_active_date: today,
     })
-    .where(eq(streaks.id, streak.id))
-    .run();
+    .where(eq(streaks.user_id, userId));
 }

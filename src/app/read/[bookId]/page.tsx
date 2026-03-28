@@ -46,10 +46,7 @@ export default function ReaderPage() {
       });
   }, [bookId]);
 
-  const { chunk, loading, error, saveProgress } = useChunk(
-    bookId,
-    chunkIndex
-  );
+  const { chunk, loading, error, saveProgress } = useChunk(bookId, chunkIndex);
 
   // Prefetch next chunk
   usePrefetch(bookId, chunkIndex, book?.total_chunks ?? 0);
@@ -95,16 +92,6 @@ export default function ReaderPage() {
       .catch(() => {});
   }, [chunk, book]);
 
-  const handleWordTap = useCallback(
-    (word: string, lang: string) => {
-      setSelectedPhrase(word);
-      setSelectedLang(lang);
-      setSelectedContext(word);
-      setSheetOpen(true);
-    },
-    []
-  );
-
   const handlePhraseSelect = useCallback(
     (phrase: string, lang: string, context: string) => {
       setSelectedPhrase(phrase);
@@ -131,6 +118,7 @@ export default function ReaderPage() {
   );
 
   function goToChunk(index: number) {
+    setSheetOpen(false);
     scrollRestored.current = false;
     setChunkIndex(index);
     window.scrollTo(0, 0);
@@ -172,7 +160,6 @@ export default function ReaderPage() {
           studyLang={book.study_lang}
           isRtl={book.is_rtl}
           vocabStatuses={vocabStatuses}
-          onWordTap={handleWordTap}
           onPhraseSelect={handlePhraseSelect}
         />
       )}

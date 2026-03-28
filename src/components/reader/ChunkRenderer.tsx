@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
 import DOMPurify from 'dompurify';
 import { tokenizeLatin, tokensFromPrecomputed } from '@/lib/tokenizer-client';
 import { isCJK } from '@/lib/languages';
@@ -11,8 +11,12 @@ interface ChunkRendererProps {
   studyLang: string;
   isRtl: boolean;
   vocabStatuses?: Record<string, string>;
-  onWordTap: (word: string, lang: string) => void;
   onPhraseSelect: (phrase: string, lang: string, context: string) => void;
+}
+
+interface PendingSelection {
+  text: string;
+  context: string;
 }
 
 export default function ChunkRenderer({
@@ -21,11 +25,10 @@ export default function ChunkRenderer({
   studyLang,
   isRtl,
   vocabStatuses,
-  onWordTap,
   onPhraseSelect,
 }: ChunkRendererProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const selectionTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const [pendingSelection, setPendingSelection] = useState<PendingSelection | null>(null);
 
   const injectWordSpans = useCallback(() => {
     const container = containerRef.current;
@@ -156,67 +159,73 @@ export default function ChunkRenderer({
     injectWordSpans();
   }, [injectWordSpans]);
 
-  // Handle word taps
+  // Track text selection via selectionchange — the only event that fires reliably
+  // on Android Chrome during native text selection (touchend/pointerup get cancelled).
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
 
-    function handleClick(e: MouseEvent) {
-      const target = e.target as HTMLElement;
-      const wordSpan = target.closest('[data-word]');
-      if (wordSpan) {
-        const word = wordSpan.getAttribute('data-word') ?? '';
-        const lang = wordSpan.getAttribute('data-lang') ?? studyLang;
-        onWordTap(word, lang);
-      }
-    }
-
-    container.addEventListener('click', handleClick);
-    return () => container.removeEventListener('click', handleClick);
-  }, [studyLang, onWordTap]);
-
-  // Handle phrase selection (300ms debounce)
-  useEffect(() => {
     function handleSelectionChange() {
-      if (selectionTimeoutRef.current) {
-        clearTimeout(selectionTimeoutRef.current);
+      const selection = window.getSelection();
+      if (!selection || selection.isCollapsed) {
+        setPendingSelection(null);
+        return;
       }
 
-      selectionTimeoutRef.current = setTimeout(() => {
-        const selection = window.getSelection();
-        if (!selection || selection.isCollapsed) return;
+      const text = selection.toString().trim();
+      if (text.length === 0) {
+        setPendingSelection(null);
+        return;
+      }
 
-        const text = selection.toString().trim();
-        if (text.length < 2 || text.split(/\s+/).length < 2) return;
+      // Only show button if selection is inside this chunk
+      if (!container!.contains(selection.anchorNode)) {
+        setPendingSelection(null);
+        return;
+      }
 
-        // Extract containing sentence as context
-        const anchorNode = selection.anchorNode;
-        const parentEl =
-          anchorNode?.nodeType === Node.TEXT_NODE
-            ? anchorNode.parentElement
-            : (anchorNode as HTMLElement);
-        const paragraph = parentEl?.closest('p, div, blockquote, h1, h2, h3, h4, h5, h6');
-        const context = paragraph?.textContent?.trim() ?? text;
+      const anchorNode = selection.anchorNode;
+      const parentEl =
+        anchorNode?.nodeType === Node.TEXT_NODE
+          ? anchorNode.parentElement
+          : (anchorNode as HTMLElement);
+      const paragraph = parentEl?.closest('p, div, blockquote, h1, h2, h3, h4, h5, h6');
+      const context = paragraph?.textContent?.trim() ?? text;
 
-        onPhraseSelect(text, studyLang, context);
-      }, 300);
+      setPendingSelection({ text, context });
     }
 
     document.addEventListener('selectionchange', handleSelectionChange);
-    return () => {
-      document.removeEventListener('selectionchange', handleSelectionChange);
-      if (selectionTimeoutRef.current) {
-        clearTimeout(selectionTimeoutRef.current);
-      }
-    };
-  }, [studyLang, onPhraseSelect]);
+    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+  }, []);
+
+  function handleAnalyzeClick() {
+    if (!pendingSelection) return;
+    const { text, context } = pendingSelection;
+    setPendingSelection(null);
+    window.getSelection()?.removeAllRanges();
+    onPhraseSelect(text, studyLang, context);
+  }
 
   return (
-    <div
-      ref={containerRef}
-      dir={isRtl ? 'rtl' : 'ltr'}
-      className="chunk-content prose prose-lg max-w-none touch-pan-y"
-      style={{ lineHeight: 1.8 }}
-    />
+    <>
+      <div
+        ref={containerRef}
+        dir={isRtl ? 'rtl' : 'ltr'}
+        className="chunk-content prose prose-lg max-w-none"
+        style={{ lineHeight: 1.8, touchAction: 'auto', userSelect: 'text', WebkitUserSelect: 'text' }}
+      />
+      {pendingSelection && (
+        <button
+          onClick={handleAnalyzeClick}
+          className="fixed bottom-6 left-4 right-4 bg-blue-600 text-white py-3 rounded-xl shadow-lg text-sm font-medium z-40 active:bg-blue-700"
+          style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
+        >
+          Analyze: &ldquo;{pendingSelection.text.length > 50
+            ? pendingSelection.text.slice(0, 50) + '…'
+            : pendingSelection.text}&rdquo;
+        </button>
+      )}
+    </>
   );
 }

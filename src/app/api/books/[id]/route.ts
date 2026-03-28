@@ -1,30 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
-import { books, chunks, readingProgress } from '@/db/schema';
+import { books, chunks, readingProgress, translationMemory, termGlossary } from '@/db/schema';
 import { eq } from 'drizzle-orm';
+import { getRequiredUser, verifyBookOwnership } from '@/lib/auth-helpers';
 
 export async function GET(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  const { user, errorResponse } = await getRequiredUser();
+  if (errorResponse) return errorResponse;
+
   const bookId = parseInt(params.id, 10);
-  const book = db.select().from(books).where(eq(books.id, bookId)).get();
+  const { book, error } = await verifyBookOwnership(bookId, user.id);
+  if (error) return error;
 
-  if (!book) {
-    return NextResponse.json({ error: 'Book not found' }, { status: 404 });
-  }
-
-  const progress = db
+  const progressRows = await db
     .select()
     .from(readingProgress)
     .where(eq(readingProgress.book_id, bookId))
-    .get();
+    .limit(1);
+  const progress = progressRows[0];
 
-  const chunkCount = db
+  const chunkRows = await db
     .select({ count: chunks.id })
     .from(chunks)
-    .where(eq(chunks.book_id, bookId))
-    .all().length;
+    .where(eq(chunks.book_id, bookId));
+  const chunkCount = chunkRows.length;
 
   return NextResponse.json({
     ...book,
@@ -38,13 +40,18 @@ export async function DELETE(
   _request: NextRequest,
   { params }: { params: { id: string } }
 ) {
-  const bookId = parseInt(params.id, 10);
+  const { user, errorResponse } = await getRequiredUser();
+  if (errorResponse) return errorResponse;
 
-  db.delete(readingProgress)
-    .where(eq(readingProgress.book_id, bookId))
-    .run();
-  db.delete(chunks).where(eq(chunks.book_id, bookId)).run();
-  db.delete(books).where(eq(books.id, bookId)).run();
+  const bookId = parseInt(params.id, 10);
+  const { error } = await verifyBookOwnership(bookId, user.id);
+  if (error) return error;
+
+  await db.delete(translationMemory).where(eq(translationMemory.book_id, bookId));
+  await db.delete(termGlossary).where(eq(termGlossary.book_id, bookId));
+  await db.delete(readingProgress).where(eq(readingProgress.book_id, bookId));
+  await db.delete(chunks).where(eq(chunks.book_id, bookId));
+  await db.delete(books).where(eq(books.id, bookId));
 
   return NextResponse.json({ success: true });
 }
