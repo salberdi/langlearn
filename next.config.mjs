@@ -1,9 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  serverExternalPackages: ['kuromoji'],
   experimental: {
     instrumentationHook: true,
-    serverComponentsExternalPackages: ['better-sqlite3', 'kuromoji'],
   },
   images: {
     remotePatterns: [

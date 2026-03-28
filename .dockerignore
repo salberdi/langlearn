@@ -5,7 +5,6 @@ npm-debug.log*
 .env
 .env.*
 !.env.example
-drizzle/meta
 docs
 *.md
 .worktrees
