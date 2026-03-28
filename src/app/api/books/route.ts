@@ -2,9 +2,13 @@ import { NextResponse } from 'next/server';
 import { db } from '@/db';
 import { books, readingProgress } from '@/db/schema';
 import { desc, eq } from 'drizzle-orm';
+import { getRequiredUser } from '@/lib/auth-helpers';
 
 export async function GET() {
-  const allBooks = db
+  const { user, errorResponse } = await getRequiredUser();
+  if (errorResponse) return errorResponse;
+
+  const allBooks = await db
     .select({
       id: books.id,
       title: books.title,
@@ -17,8 +21,8 @@ export async function GET() {
     })
     .from(books)
     .leftJoin(readingProgress, eq(books.id, readingProgress.book_id))
-    .orderBy(desc(books.updated_at))
-    .all();
+    .where(eq(books.user_id, user.id))
+    .orderBy(desc(books.updated_at));
 
   return NextResponse.json(allBooks);
 }

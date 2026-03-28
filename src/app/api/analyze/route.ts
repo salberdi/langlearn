@@ -4,11 +4,15 @@ import { phrases } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { MODELS } from '@/lib/models';
 import { getLanguageName } from '@/lib/languages';
+import { getRequiredUser } from '@/lib/auth-helpers';
 import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic();
 
 export async function GET(request: NextRequest) {
+  const { errorResponse } = await getRequiredUser();
+  if (errorResponse) return errorResponse;
+
   const { searchParams } = new URL(request.url);
   const phrase = searchParams.get('phrase') ?? '';
   const lang = searchParams.get('lang') ?? '';
@@ -20,11 +24,12 @@ export async function GET(request: NextRequest) {
   }
 
   // Check phrase cache first
-  const cached = db
+  const cachedRows = await db
     .select()
     .from(phrases)
     .where(and(eq(phrases.phrase_text, phrase), eq(phrases.phrase_lang, lang)))
-    .get();
+    .limit(1);
+  const cached = cachedRows[0];
 
   if (cached?.translation) {
     // Return cached result as SSE burst
@@ -139,8 +144,8 @@ EXAMPLE_3: <${langName} sentence>|||<${uiLangName} translation>`;
 
         controller.enqueue(encoder.encode(`data: DONE\n\n`));
 
-        // Cache the full result
-        cacheAnalysis(phrase, lang, emittedLines);
+        // Cache the full result (fire-and-forget)
+        void cacheAnalysis(phrase, lang, emittedLines);
       } catch {
         controller.enqueue(
           encoder.encode(`data: ERROR: Analysis failed\n\n`)
@@ -160,7 +165,7 @@ EXAMPLE_3: <${langName} sentence>|||<${uiLangName} translation>`;
   });
 }
 
-function cacheAnalysis(phraseText: string, phraseLang: string, lines: string[]): void {
+async function cacheAnalysis(phraseText: string, phraseLang: string, lines: string[]): Promise<void> {
   const fields: Record<string, string> = {};
   const examples: Array<{ sentence: string; translation: string }> = [];
 
@@ -187,7 +192,7 @@ function cacheAnalysis(phraseText: string, phraseLang: string, lines: string[]):
   if (!fields.translation) return;
 
   try {
-    db.insert(phrases)
+    await db.insert(phrases)
       .values({
         phrase_text: phraseText,
         phrase_lang: phraseLang,
@@ -200,7 +205,6 @@ function cacheAnalysis(phraseText: string, phraseLang: string, lines: string[]):
         examples: examples.length > 0 ? JSON.stringify(examples) : null,
         created_at: new Date(),
       })
-      .onConflictDoNothing()
-      .run();
+      .onConflictDoNothing();
   } catch {}
 }
