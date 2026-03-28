@@ -10,11 +10,6 @@ const nextConfig = {
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
     ],
   },
-  api: {
-    bodyParser: {
-      sizeLimit: '50mb',
-    },
-  },
 };
 
 export default nextConfig;
