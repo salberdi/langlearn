@@ -1,0 +1,36 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build and push
+        run: |
+          docker build --platform linux/amd64 -t 471623014667.dkr.ecr.us-east-1.amazonaws.com/langlearn:latest .
+          docker push 471623014667.dkr.ecr.us-east-1.amazonaws.com/langlearn:latest
+
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1
+        with:
+          host: 54.82.92.43
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 471623014667.dkr.ecr.us-east-1.amazonaws.com
+            docker pull 471623014667.dkr.ecr.us-east-1.amazonaws.com/langlearn:latest
+            docker rm -f langlearn || true
+            docker run -d --name langlearn --env-file ~/.env -p 80:3000 471623014667.dkr.ecr.us-east-1.amazonaws.com/langlearn:latest
