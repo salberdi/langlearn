@@ -8,8 +8,10 @@ export const authConfig = {
     signIn: '/auth/signin',
   },
   callbacks: {
-    authorized({ auth }) {
-      return !!auth;
+    authorized() {
+      // Auth gating is handled in middleware.ts — always allow here
+      // to prevent NextAuth's internal redirect from conflicting.
+      return true;
     },
     jwt({ token, user }) {
       if (user) token.id = user.id;
