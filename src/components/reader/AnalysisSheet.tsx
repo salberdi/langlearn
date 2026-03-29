@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import BottomSheet from '@/components/ui/BottomSheet';
 import type { AnalysisField } from '@/types';
 
@@ -21,6 +22,7 @@ export default function AnalysisSheet({
   context,
   onSaveVocab,
 }: AnalysisSheetProps) {
+  const t = useTranslations('Analysis');
   const [fields, setFields] = useState<AnalysisField>({});
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -113,7 +115,7 @@ export default function AnalysisSheet({
             onClick={handleSpeak}
             className="text-blue-600 text-sm ml-2 shrink-0"
           >
-            Listen
+            {t('listen')}
           </button>
         </div>
 
@@ -133,7 +135,7 @@ export default function AnalysisSheet({
 
         {fields.grammar && (
           <div>
-            <p className="text-xs font-medium text-gray-400 uppercase">Grammar</p>
+            <p className="text-xs font-medium text-gray-400 uppercase">{t('grammar')}</p>
             <p className="text-sm">{fields.grammar}</p>
           </div>
         )}
@@ -141,11 +143,11 @@ export default function AnalysisSheet({
         {fields.register && (
           <div className="flex gap-4 text-sm">
             <span className="text-gray-500">
-              Register: <span className="text-gray-900">{fields.register}</span>
+              {t('register')}: <span className="text-gray-900">{fields.register}</span>
             </span>
             {fields.frequency && (
               <span className="text-gray-500">
-                Level: <span className="text-gray-900">{fields.frequency}</span>
+                {t('level')}: <span className="text-gray-900">{fields.frequency}</span>
               </span>
             )}
           </div>
@@ -154,7 +156,7 @@ export default function AnalysisSheet({
         {fields.mnemonic && (
           <div className="bg-yellow-50 rounded-lg p-3">
             <p className="text-xs font-medium text-yellow-800 uppercase mb-1">
-              Memory hook
+              {t('memoryHook')}
             </p>
             <p className="text-sm text-yellow-900">{fields.mnemonic}</p>
           </div>
@@ -163,7 +165,7 @@ export default function AnalysisSheet({
         {fields.examples && fields.examples.length > 0 && (
           <div>
             <p className="text-xs font-medium text-gray-400 uppercase mb-2">
-              Examples
+              {t('examples')}
             </p>
             <div className="space-y-2">
               {fields.examples.map((ex, i) => (
@@ -179,7 +181,7 @@ export default function AnalysisSheet({
         )}
 
         {loading && (
-          <p className="text-sm text-gray-400 animate-pulse">Analyzing...</p>
+          <p className="text-sm text-gray-400 animate-pulse">{t('analyzing')}</p>
         )}
 
         <button
@@ -187,7 +189,7 @@ export default function AnalysisSheet({
           disabled={saved}
           className="w-full bg-green-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-500"
         >
-          {saved ? 'Saved to vocabulary' : 'Save to vocabulary'}
+          {saved ? t('saved') : t('save')}
         </button>
       </div>
     </BottomSheet>

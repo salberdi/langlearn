@@ -1,12 +1,14 @@
 import { auth, signOut } from '@/auth';
+import { getTranslations } from 'next-intl/server';
 
 export default async function AuthButton() {
   const session = await auth();
+  const t = await getTranslations('Auth');
 
   if (!session?.user) {
     return (
       <a href="/auth/signin" className="text-blue-600 hover:text-blue-800 text-sm">
-        Sign in
+        {t('signIn')}
       </a>
     );
   }
@@ -30,7 +32,7 @@ export default async function AuthButton() {
         }}
       >
         <button type="submit" className="text-sm text-gray-500 hover:text-gray-700">
-          Sign out
+          {t('signOut')}
         </button>
       </form>
     </div>

@@ -1,0 +1,91 @@
+{
+    "Metadata": {
+        "title": "LangLearn",
+        "description": "Aprende idiomas leyendo libros"
+    },
+    "Nav": {
+        "library": "Biblioteca",
+        "upload": "Subir",
+        "study": "Estudiar",
+        "review": "Repasar"
+    },
+    "Auth": {
+        "signIn": "Iniciar sesión",
+        "signOut": "Cerrar sesión",
+        "signInTitle": "Inicia sesión en LangLearn",
+        "signInSubtitle": "Inicia sesión para acceder a tus libros y vocabulario.",
+        "signInGoogle": "Iniciar sesión con Google"
+    },
+    "Library": {
+        "title": "Biblioteca",
+        "uploadBook": "Subir libro",
+        "loading": "Cargando biblioteca…",
+        "noBooks": "Aún no hay libros",
+        "noBooksHint": "Sube un archivo EPUB o TXT para comenzar."
+    },
+    "Upload": {
+        "title": "Subir un libro",
+        "fileLabel": "Archivo (EPUB o TXT)",
+        "studyLangLabel": "Traducir a (idioma de estudio)",
+        "dialectLabel": "Notas de dialecto (opcional)",
+        "dialectPlaceholder": "p. ej., Usar español mexicano, español rioplatense…",
+        "styleLabel": "Notas de estilo (opcional)",
+        "stylePlaceholder": "p. ej., Registro formal del siglo XIX…",
+        "uploading": "Subiendo y procesando…",
+        "uploadBtn": "Subir",
+        "uploadFailed": "Error al subir",
+        "uploadFailedRetry": "Error al subir. Inténtalo de nuevo."
+    },
+    "Study": {
+        "title": "Estudiar",
+        "loading": "Cargando sesión de estudio…",
+        "sessionComplete": "Sesión completada",
+        "reviewedCards": "Repasaste {count, plural, one {# tarjeta} other {# tarjetas}}.",
+        "noCardsDue": "No hay tarjetas pendientes de repaso.",
+        "backToLibrary": "Volver a la biblioteca",
+        "again": "Otra vez",
+        "hard": "Difícil",
+        "good": "Bien",
+        "easy": "Fácil",
+        "reveal": "Revelar"
+    },
+    "Review": {
+        "title": "Vocabulario",
+        "loading": "Cargando vocabulario…",
+        "noVocab": "Aún no hay vocabulario. Toca las palabras mientras lees para guardarlas.",
+        "all": "Todos",
+        "new": "Nuevos",
+        "learning": "Aprendiendo",
+        "known": "Conocidos",
+        "ignored": "Ignorados",
+        "translation": "Traducción",
+        "grammar": "Gramática",
+        "register": "Registro",
+        "frequency": "Frecuencia",
+        "mnemonic": "Mnemotécnico",
+        "examples": "Ejemplos"
+    },
+    "Reader": {
+        "loading": "Cargando libro…",
+        "chunkOf": "Fragmento {current} de {total}",
+        "translating": "Traduciendo…",
+        "translatingHint": "El primer fragmento puede tardar un minuto",
+        "previous": "Anterior",
+        "next": "Siguiente",
+        "analyze": "Analizar: \"{text}\""
+    },
+    "Analysis": {
+        "listen": "Escuchar",
+        "grammar": "Gramática",
+        "register": "Registro",
+        "level": "Nivel",
+        "memoryHook": "Truco de memoria",
+        "examples": "Ejemplos",
+        "analyzing": "Analizando…",
+        "saved": "Guardado en vocabulario",
+        "save": "Guardar en vocabulario"
+    },
+    "Streak": {
+        "dayStreak": "Racha de {count} días"
+    }
+}

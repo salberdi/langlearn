@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface StreakData {
   current_streak: number;
@@ -8,6 +9,7 @@ interface StreakData {
 }
 
 export default function StreakBadge() {
+  const t = useTranslations('Streak');
   const [streak, setStreak] = useState<StreakData | null>(null);
 
   useEffect(() => {
@@ -19,14 +21,14 @@ export default function StreakBadge() {
       .then((data) => {
         if (data) setStreak(data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   if (!streak || streak.current_streak === 0) return null;
 
   return (
     <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 text-xs font-medium px-2 py-0.5 rounded-full">
-      {streak.current_streak} day streak
+      {t('dayStreak', { count: streak.current_streak })}
     </span>
   );
 }

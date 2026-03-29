@@ -1,6 +1,7 @@
 'use client';
 
-import { useRef, useEffect, useCallback, useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 import DOMPurify from 'dompurify';
 import { tokenizeLatin, tokensFromPrecomputed } from '@/lib/tokenizer-client';
 import { isCJK } from '@/lib/languages';
@@ -27,6 +28,7 @@ export default function ChunkRenderer({
   vocabStatuses,
   onPhraseSelect,
 }: ChunkRendererProps) {
+  const t = useTranslations('Reader');
   const containerRef = useRef<HTMLDivElement>(null);
   const [pendingSelection, setPendingSelection] = useState<PendingSelection | null>(null);
 
@@ -207,6 +209,12 @@ export default function ChunkRenderer({
     onPhraseSelect(text, studyLang, context);
   }
 
+  const analyzeText = pendingSelection
+    ? pendingSelection.text.length > 50
+      ? pendingSelection.text.slice(0, 50) + '…'
+      : pendingSelection.text
+    : '';
+
   return (
     <>
       <div
@@ -221,9 +229,7 @@ export default function ChunkRenderer({
           className="fixed bottom-6 left-4 right-4 bg-blue-600 text-white py-3 rounded-xl shadow-lg text-sm font-medium z-40 active:bg-blue-700"
           style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
         >
-          Analyze: &ldquo;{pendingSelection.text.length > 50
-            ? pendingSelection.text.slice(0, 50) + '…'
-            : pendingSelection.text}&rdquo;
+          {t('analyze', { text: analyzeText })}
         </button>
       )}
     </>

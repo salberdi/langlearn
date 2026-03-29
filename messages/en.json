@@ -1,0 +1,91 @@
+{
+    "Metadata": {
+        "title": "LangLearn",
+        "description": "Learn languages by reading books"
+    },
+    "Nav": {
+        "library": "Library",
+        "upload": "Upload",
+        "study": "Study",
+        "review": "Review"
+    },
+    "Auth": {
+        "signIn": "Sign in",
+        "signOut": "Sign out",
+        "signInTitle": "Sign in to LangLearn",
+        "signInSubtitle": "Sign in to access your books and vocabulary.",
+        "signInGoogle": "Sign in with Google"
+    },
+    "Library": {
+        "title": "Library",
+        "uploadBook": "Upload Book",
+        "loading": "Loading library…",
+        "noBooks": "No books yet",
+        "noBooksHint": "Upload an EPUB or TXT file to get started."
+    },
+    "Upload": {
+        "title": "Upload a Book",
+        "fileLabel": "File (EPUB or TXT)",
+        "studyLangLabel": "Translate into (study language)",
+        "dialectLabel": "Dialect notes (optional)",
+        "dialectPlaceholder": "e.g., Use Mexican Spanish, River Plate Spanish…",
+        "styleLabel": "Style notes (optional)",
+        "stylePlaceholder": "e.g., 19th-century formal register…",
+        "uploading": "Uploading & processing…",
+        "uploadBtn": "Upload",
+        "uploadFailed": "Upload failed",
+        "uploadFailedRetry": "Upload failed. Please try again."
+    },
+    "Study": {
+        "title": "Study",
+        "loading": "Loading study session…",
+        "sessionComplete": "Session Complete",
+        "reviewedCards": "You reviewed {count, plural, one {# card} other {# cards}}.",
+        "noCardsDue": "No cards due for review.",
+        "backToLibrary": "Back to Library",
+        "again": "Again",
+        "hard": "Hard",
+        "good": "Good",
+        "easy": "Easy",
+        "reveal": "Reveal"
+    },
+    "Review": {
+        "title": "Vocabulary",
+        "loading": "Loading vocabulary…",
+        "noVocab": "No vocabulary items yet. Tap words while reading to save them.",
+        "all": "All",
+        "new": "New",
+        "learning": "Learning",
+        "known": "Known",
+        "ignored": "Ignored",
+        "translation": "Translation",
+        "grammar": "Grammar",
+        "register": "Register",
+        "frequency": "Frequency",
+        "mnemonic": "Mnemonic",
+        "examples": "Examples"
+    },
+    "Reader": {
+        "loading": "Loading book…",
+        "chunkOf": "Chunk {current} of {total}",
+        "translating": "Translating…",
+        "translatingHint": "This may take a minute for the first chunk",
+        "previous": "Previous",
+        "next": "Next",
+        "analyze": "Analyze: \"{text}\""
+    },
+    "Analysis": {
+        "listen": "Listen",
+        "grammar": "Grammar",
+        "register": "Register",
+        "level": "Level",
+        "memoryHook": "Memory hook",
+        "examples": "Examples",
+        "analyzing": "Analyzing…",
+        "saved": "Saved to vocabulary",
+        "save": "Save to vocabulary"
+    },
+    "Streak": {
+        "dayStreak": "{count} day streak"
+    }
+}
