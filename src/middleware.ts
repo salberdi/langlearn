@@ -1,19 +1,19 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
 
-export async function middleware(request: NextRequest) {
-  const token = await getToken({ req: request, secret: process.env.AUTH_SECRET });
-
-  if (!token) {
-    const signInUrl = new URL('/auth/signin', request.url);
+export default auth((req) => {
+  if (!req.auth) {
+    if (req.nextUrl.pathname.startsWith('/api/')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    const signInUrl = new URL('/auth/signin', req.url);
     return NextResponse.redirect(signInUrl);
   }
-
   return NextResponse.next();
-}
+});
 
 export const config = {
   matcher: [
-    '/((?!api/auth|api/languages|auth/signin|_next/static|_next/image|favicon.ico|manifest.json|fonts).*)',
+    '/((?!api/auth|api/cron|api/admin|api/languages|auth/signin|_next/static|_next/image|favicon.ico|manifest.json|fonts).*)',
   ],
 };

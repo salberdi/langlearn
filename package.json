@@ -11,6 +11,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.80.0",
     "@auth/drizzle-adapter": "^1.11.1",
+    "@aws-sdk/client-s3": "^3.1019.0",
     "adm-zip": "^0.5.16",
     "cheerio": "^1.2.0",
     "dompurify": "^3.3.3",

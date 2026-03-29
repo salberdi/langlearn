@@ -3,6 +3,7 @@ import { db } from '@/db';
 import { books, chunks, readingProgress, translationMemory, termGlossary } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 import { getRequiredUser, verifyBookOwnership } from '@/lib/auth-helpers';
+import { deleteS3Prefix } from '@/lib/s3';
 
 export async function GET(
   _request: NextRequest,
@@ -52,6 +53,14 @@ export async function DELETE(
   await db.delete(readingProgress).where(eq(readingProgress.book_id, bookId));
   await db.delete(chunks).where(eq(chunks.book_id, bookId));
   await db.delete(books).where(eq(books.id, bookId));
+
+  // Clean up S3 objects (fire-and-forget)
+  deleteS3Prefix(`uploads/${user.id}/${bookId}/`).catch((err) =>
+    console.error('[delete] S3 upload cleanup failed:', err)
+  );
+  deleteS3Prefix(`chunks/${bookId}/`).catch((err) =>
+    console.error('[delete] S3 chunk cleanup failed:', err)
+  );
 
   return NextResponse.json({ success: true });
 }

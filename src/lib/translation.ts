@@ -213,11 +213,15 @@ export async function translateChunk(
       .limit(1);
     const prevChunk = prevChunkRows[0];
 
-    if (prevChunk?.translated_html) {
-      await extractTM(prevChunk, book);
+    if (prevChunk?.translated_html && prevChunk.source_html) {
+      await extractTM({ ...prevChunk, source_html: prevChunk.source_html }, book);
       await db.update(chunks)
         .set({ tm_extracted: true })
         .where(eq(chunks.id, prevChunk.id));
+    }
+
+    if (!chunk.source_html) {
+      throw new Error(`Cannot translate chunk ${chunkId}: source_html is null (archived?)`);
     }
 
     // Build TM + glossary for prompt

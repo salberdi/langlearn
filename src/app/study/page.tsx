@@ -121,18 +121,23 @@ export default function StudyPage() {
             {card.grammar_note && (
               <p className="text-sm text-gray-600">{card.grammar_note}</p>
             )}
-            {card.examples && (
-              <div className="text-sm space-y-1">
-                {(JSON.parse(card.examples) as Array<{ sentence: string; translation: string }>)
-                  .slice(0, 2)
-                  .map((ex, i) => (
-                    <div key={i}>
-                      <p dir="auto" className="font-medium">{ex.sentence}</p>
-                      <p className="text-gray-500">{ex.translation}</p>
-                    </div>
-                  ))}
-              </div>
-            )}
+            {card.examples && (() => {
+              try {
+                const exs = JSON.parse(card.examples) as Array<{ sentence: string; translation: string }>;
+                return (
+                  <div className="text-sm space-y-1">
+                    {exs.slice(0, 2).map((ex, i) => (
+                      <div key={i}>
+                        <p dir="auto" className="font-medium">{ex.sentence}</p>
+                        <p className="text-gray-500">{ex.translation}</p>
+                      </div>
+                    ))}
+                  </div>
+                );
+              } catch {
+                return null;
+              }
+            })()}
 
             {/* Grading buttons */}
             <div className="grid grid-cols-4 gap-2 pt-4">

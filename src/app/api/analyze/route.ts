@@ -205,6 +205,17 @@ async function cacheAnalysis(phraseText: string, phraseLang: string, lines: stri
         examples: examples.length > 0 ? JSON.stringify(examples) : null,
         created_at: new Date(),
       })
-      .onConflictDoNothing();
+      .onConflictDoUpdate({
+        target: [phrases.phrase_text, phrases.phrase_lang],
+        set: {
+          translation: fields.translation,
+          pronunciation: fields.pronunciation || null,
+          grammar_note: fields.grammar || null,
+          register: fields.register || null,
+          frequency_tier: fields.frequency || null,
+          mnemonic: fields.mnemonic || null,
+          examples: examples.length > 0 ? JSON.stringify(examples) : null,
+        },
+      });
   } catch {}
 }

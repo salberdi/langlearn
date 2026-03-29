@@ -34,6 +34,7 @@ export default function RootLayout({
           <div className="max-w-3xl mx-auto flex items-center justify-between">
             <a href="/" className="text-lg font-semibold">LangLearn</a>
             <div className="flex items-center gap-4 text-sm">
+              <a href="/" className="text-blue-600 hover:text-blue-800">Library</a>
               <a href="/upload" className="text-blue-600 hover:text-blue-800">Upload</a>
               <a href="/study" className="text-blue-600 hover:text-blue-800">Study</a>
               <a href="/review" className="text-blue-600 hover:text-blue-800">Review</a>

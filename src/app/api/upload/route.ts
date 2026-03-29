@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/db';
 import { books, chunks } from '@/db/schema';
+import { eq } from 'drizzle-orm';
 import { parseEpub, parseTxt } from '@/lib/epub-parser';
 import { chunkHtml } from '@/lib/chunker';
 import { MODELS } from '@/lib/models';
 import { getRequiredUser } from '@/lib/auth-helpers';
+import { uploadToS3 } from '@/lib/s3';
 import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic();
@@ -126,6 +128,17 @@ export async function POST(request: NextRequest) {
     })
     .returning();
   const bookResult = bookRows[0];
+
+  // Archive original file to S3
+  const ext = filename.endsWith('.epub') ? 'epub' : 'txt';
+  const s3Key = `uploads/${user.id}/${bookResult.id}/original.${ext}`;
+  const contentType = ext === 'epub' ? 'application/epub+zip' : 'text/plain; charset=utf-8';
+  try {
+    await uploadToS3(s3Key, buffer, contentType);
+    await db.update(books).set({ upload_s3_key: s3Key }).where(eq(books.id, bookResult.id));
+  } catch (err) {
+    console.error('[upload] S3 archival failed:', err);
+  }
 
   // Insert chunks
   await db.insert(chunks).values(

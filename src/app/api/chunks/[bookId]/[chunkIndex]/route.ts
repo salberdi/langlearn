@@ -4,6 +4,7 @@ import { chunks, readingProgress } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { translateChunk } from '@/lib/translation';
 import { getRequiredUser, verifyBookOwnership } from '@/lib/auth-helpers';
+import { rehydrateChunk, prefetchArchivedChunks } from '@/lib/rehydrate-chunk';
 
 export async function GET(
   _request: NextRequest,
@@ -27,6 +28,32 @@ export async function GET(
 
   if (!chunk) {
     return NextResponse.json({ error: 'Chunk not found' }, { status: 404 });
+  }
+
+  // Rehydrate archived chunks from S3
+  if (chunk.source_html === null && chunk.s3_key) {
+    try {
+      const content = await rehydrateChunk({ id: chunk.id, s3_key: chunk.s3_key });
+      prefetchArchivedChunks(bookId, chunkIndex);
+      return NextResponse.json({
+        id: chunk.id,
+        chunk_index: chunk.chunk_index,
+        source_html: content.source_html,
+        translated_html: content.translated_html,
+        tokens_json: content.tokens_json,
+        translation_status: chunk.translation_status,
+      });
+    } catch (err) {
+      console.error('[chunks] Rehydration failed:', err);
+      return NextResponse.json(
+        { error: 'Book content temporarily unavailable, please try again' },
+        { status: 503 }
+      );
+    }
+  }
+
+  if (chunk.source_html === null && !chunk.s3_key) {
+    return NextResponse.json({ error: 'Chunk data is missing' }, { status: 500 });
   }
 
   // If already translated, return immediately

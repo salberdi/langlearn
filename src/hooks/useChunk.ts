@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface ChunkData {
   id: number;
@@ -15,6 +15,7 @@ export function useChunk(bookId: number, chunkIndex: number) {
   const [chunk, setChunk] = useState<ChunkData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchChunk = useCallback(async () => {
     setLoading(true);
@@ -30,9 +31,8 @@ export function useChunk(bookId: number, chunkIndex: number) {
       }
 
       if (data.translation_status === 'in_progress') {
-        // Poll every 3 seconds
         setChunk(data);
-        setTimeout(fetchChunk, 3000);
+        timerRef.current = setTimeout(fetchChunk, 3000);
         return;
       }
 
@@ -46,6 +46,9 @@ export function useChunk(bookId: number, chunkIndex: number) {
 
   useEffect(() => {
     fetchChunk();
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
   }, [fetchChunk]);
 
   // Save reading progress

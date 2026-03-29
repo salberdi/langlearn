@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  serverExternalPackages: ['kuromoji'],
+  serverExternalPackages: ['kuromoji', 'drizzle-orm', 'pg', '@aws-sdk/client-s3'],
   experimental: {
     instrumentationHook: true,
   },

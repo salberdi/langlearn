@@ -8,12 +8,20 @@ interface VocabEntry {
   phrase_lang: string;
   status: string;
   created_at: string;
+  translation: string | null;
+  pronunciation: string | null;
+  grammar_note: string | null;
+  examples: string | null;
+  mnemonic: string | null;
+  register: string | null;
+  frequency_tier: string | null;
 }
 
 export default function ReviewPage() {
   const [vocab, setVocab] = useState<VocabEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   useEffect(() => {
     fetch('/api/vocab')
@@ -41,6 +49,15 @@ export default function ReviewPage() {
           : v
       )
     );
+  }
+
+  function parseExamples(examples: string | null): { sentence: string; translation: string }[] {
+    if (!examples) return [];
+    try {
+      return JSON.parse(examples);
+    } catch {
+      return [];
+    }
   }
 
   if (loading) {
@@ -79,26 +96,92 @@ export default function ReviewPage() {
           {filtered.map((v) => (
             <div
               key={v.id}
-              className="bg-white rounded-lg border border-gray-200 p-3 flex items-center justify-between"
+              className="bg-white rounded-lg border border-gray-200 overflow-hidden"
             >
-              <div>
-                <p className="font-medium" dir="auto">
-                  {v.phrase_text}
-                </p>
-                <p className="text-xs text-gray-400">{v.phrase_lang}</p>
-              </div>
-              <select
-                value={v.status}
-                onChange={(e) =>
-                  updateStatus(v.phrase_text, v.phrase_lang, e.target.value)
-                }
-                className="text-sm border border-gray-200 rounded px-2 py-1"
+              <div
+                className="p-3 flex items-center justify-between cursor-pointer"
+                onClick={() => setExpandedId(expandedId === v.id ? null : v.id)}
               >
-                <option value="new">New</option>
-                <option value="learning">Learning</option>
-                <option value="known">Known</option>
-                <option value="ignored">Ignored</option>
-              </select>
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="min-w-0">
+                    <p className="font-medium truncate" dir="auto">
+                      {v.phrase_text}
+                    </p>
+                    {v.translation && (
+                      <p className="text-sm text-gray-500 truncate">{v.translation}</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <select
+                    value={v.status}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) =>
+                      updateStatus(v.phrase_text, v.phrase_lang, e.target.value)
+                    }
+                    className="text-sm border border-gray-200 rounded px-2 py-1"
+                  >
+                    <option value="new">New</option>
+                    <option value="learning">Learning</option>
+                    <option value="known">Known</option>
+                    <option value="ignored">Ignored</option>
+                  </select>
+                  <span className="text-gray-400 text-sm">
+                    {expandedId === v.id ? '▲' : '▼'}
+                  </span>
+                </div>
+              </div>
+
+              {expandedId === v.id && (v.translation || v.pronunciation || v.grammar_note) && (
+                <div className="px-3 pb-3 border-t border-gray-100 pt-3 space-y-2 text-sm">
+                  {v.pronunciation && (
+                    <p className="text-gray-500 italic">{v.pronunciation}</p>
+                  )}
+                  {v.translation && (
+                    <div>
+                      <span className="font-medium text-gray-700">Translation: </span>
+                      {v.translation}
+                    </div>
+                  )}
+                  {v.grammar_note && (
+                    <div>
+                      <span className="font-medium text-gray-700">Grammar: </span>
+                      {v.grammar_note}
+                    </div>
+                  )}
+                  {v.register && (
+                    <div>
+                      <span className="font-medium text-gray-700">Register: </span>
+                      {v.register}
+                    </div>
+                  )}
+                  {v.frequency_tier && (
+                    <div>
+                      <span className="font-medium text-gray-700">Frequency: </span>
+                      {v.frequency_tier}
+                    </div>
+                  )}
+                  {v.mnemonic && (
+                    <div>
+                      <span className="font-medium text-gray-700">Mnemonic: </span>
+                      {v.mnemonic}
+                    </div>
+                  )}
+                  {parseExamples(v.examples).length > 0 && (
+                    <div>
+                      <p className="font-medium text-gray-700 mb-1">Examples:</p>
+                      <ul className="space-y-1 pl-3">
+                        {parseExamples(v.examples).map((ex, i) => (
+                          <li key={i} className="text-gray-600">
+                            <p dir="auto">{ex.sentence}</p>
+                            <p className="text-gray-400">{ex.translation}</p>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
         </div>

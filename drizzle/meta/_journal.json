@@ -8,6 +8,20 @@
       "when": 1774727878714,
       "tag": "0000_minor_silver_sable",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774747756949,
+      "tag": "0001_last_famine",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774819796226,
+      "tag": "0002_eager_pixie",
+      "breakpoints": true
     }
   ]
 }

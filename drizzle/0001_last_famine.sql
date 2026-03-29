@@ -1,0 +1,1 @@
+ALTER TABLE "srs_cards" ADD CONSTRAINT "srs_cards_user_id_phrase_id_mode_unique" UNIQUE("user_id","phrase_id","mode");

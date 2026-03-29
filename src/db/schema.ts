@@ -40,6 +40,7 @@ export const books = pgTable('books', {
   dialect_notes: text('dialect_notes'),
   style_notes: text('style_notes'),
   total_chunks: integer('total_chunks').default(0),
+  upload_s3_key: text('upload_s3_key'),
   created_at: timestamp('created_at').notNull(),
   updated_at: timestamp('updated_at').notNull(),
 });
@@ -48,7 +49,7 @@ export const chunks = pgTable('chunks', {
   id: serial('id').primaryKey(),
   book_id: integer('book_id').notNull().references(() => books.id),
   chunk_index: integer('chunk_index').notNull(),
-  source_html: text('source_html').notNull(),
+  source_html: text('source_html'),
   translated_html: text('translated_html'),
   tokens_json: text('tokens_json'),
   translation_status: text('translation_status').default('pending'),
@@ -57,6 +58,8 @@ export const chunks = pgTable('chunks', {
   start_char_offset: integer('start_char_offset').notNull(),
   end_char_offset: integer('end_char_offset').notNull(),
   word_count: integer('word_count').notNull(),
+  s3_key: text('s3_key'),
+  archived_at: timestamp('archived_at'),
   created_at: timestamp('created_at').notNull(),
 }, (t) => ({
   uniqueChunk: unique().on(t.book_id, t.chunk_index),
@@ -103,7 +106,9 @@ export const srsCards = pgTable('srs_cards', {
   ease_factor: doublePrecision('ease_factor').default(2.5),
   repetitions: integer('repetitions').default(0),
   created_at: timestamp('created_at').notNull(),
-});
+}, (t) => ({
+  uniqueCard: unique().on(t.user_id, t.phrase_id, t.mode),
+}));
 
 export const translationMemory = pgTable('translation_memory', {
   id: serial('id').primaryKey(),
