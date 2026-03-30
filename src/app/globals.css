@@ -15,19 +15,8 @@ body {
 
 /* Word/phrase highlighting in reader */
 .chunk-content [data-word] {
-  cursor: pointer;
-  border-radius: 2px;
-  transition: background-color 0.15s;
   user-select: text;
   -webkit-user-select: text;
-}
-
-.chunk-content [data-word]:hover {
-  background-color: rgba(59, 130, 246, 0.1);
-}
-
-.chunk-content [data-word]:active {
-  background-color: rgba(59, 130, 246, 0.2);
 }
 
 /* Vocab status highlighting */
