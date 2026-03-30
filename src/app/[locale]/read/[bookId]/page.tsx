@@ -30,7 +30,6 @@ export default function ReaderPage() {
     const [chunkIndex, setChunkIndex] = useState(0);
     const [vocabStatuses, setVocabStatuses] = useState<Record<string, string>>({});
 
-    // Analysis sheet state
     const [sheetOpen, setSheetOpen] = useState(false);
     const [selectedPhrase, setSelectedPhrase] = useState('');
     const [selectedLang, setSelectedLang] = useState('');
@@ -38,7 +37,6 @@ export default function ReaderPage() {
 
     const scrollRestored = useRef(false);
 
-    // Load book data
     useEffect(() => {
         fetch(`/api/books/${bookId}`)
             .then((r) => r.json())
@@ -50,10 +48,8 @@ export default function ReaderPage() {
 
     const { chunk, loading, error, saveProgress } = useChunk(bookId, chunkIndex);
 
-    // Prefetch next chunk
     usePrefetch(bookId, chunkIndex, book?.total_chunks ?? 0);
 
-    // Restore scroll position
     useEffect(() => {
         if (chunk?.translated_html && book && !scrollRestored.current) {
             scrollRestored.current = true;
@@ -63,7 +59,6 @@ export default function ReaderPage() {
         }
     }, [chunk, book]);
 
-    // Save progress on scroll (debounced)
     useEffect(() => {
         let timeout: ReturnType<typeof setTimeout>;
         function handleScroll() {
@@ -79,7 +74,6 @@ export default function ReaderPage() {
         };
     }, [saveProgress]);
 
-    // Fetch vocab statuses when chunk loads
     useEffect(() => {
         if (!chunk?.translated_html || !book) return;
         fetch(`/api/vocab?lang=${book.study_lang}`)
@@ -127,31 +121,56 @@ export default function ReaderPage() {
     }
 
     if (!book) {
-        return <p className="text-gray-500">{t('loading')}</p>;
+        return (
+            <div className="fade-up space-y-3">
+                <div className="skeleton h-6 w-48 rounded-lg" />
+                <div className="skeleton h-4 w-32 rounded" />
+                <div className="skeleton h-64 rounded-xl mt-4" />
+            </div>
+        );
     }
 
+    const progressPercent = book.total_chunks > 0
+        ? Math.round((chunkIndex / book.total_chunks) * 100)
+        : 0;
+
     return (
-        <div>
-            <div className="mb-4">
-                <h1 className="text-lg font-semibold">{book.title}</h1>
-                <p className="text-sm text-gray-500">
-                    {t('chunkOf', { current: chunkIndex + 1, total: book.total_chunks })}
-                </p>
+        <div className="fade-up">
+            {/* Book header */}
+            <div className="mb-5 pb-4 border-b border-slate-100">
+                <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                        <h1 className="text-lg font-bold text-slate-900 leading-tight truncate">{book.title}</h1>
+                        <p className="text-sm text-slate-400 mt-0.5">
+                            {t('chunkOf', { current: chunkIndex + 1, total: book.total_chunks })}
+                        </p>
+                    </div>
+                    <span className="shrink-0 text-xs font-semibold text-slate-400 bg-slate-100 rounded-full px-2.5 py-1">
+                        {progressPercent}%
+                    </span>
+                </div>
+                <div className="mt-3 h-1 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                        className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                        style={{ width: `${progressPercent}%` }}
+                    />
+                </div>
             </div>
 
             {loading && !chunk?.translated_html && (
                 <div className="text-center py-16">
-                    <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-                    <p className="text-gray-500">{t('translating')}</p>
-                    <p className="text-xs text-gray-400 mt-1">
+                    <div className="w-10 h-10 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto mb-4" />
+                    <p className="text-slate-600 font-medium">{t('translating')}</p>
+                    <p className="text-xs text-slate-400 mt-1.5">
                         {t('translatingHint')}
                     </p>
                 </div>
             )}
 
             {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                    {error}
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
+                    <span className="shrink-0">⚠️</span>
+                    <span>{error}</span>
                 </div>
             )}
 
@@ -167,23 +186,23 @@ export default function ReaderPage() {
             )}
 
             {/* Navigation */}
-            <div className="flex justify-between items-center mt-8 py-4 border-t">
+            <div className="flex justify-between items-center mt-10 pt-5 border-t border-slate-100">
                 <button
                     onClick={() => goToChunk(chunkIndex - 1)}
                     disabled={chunkIndex === 0}
-                    className="px-4 py-2 text-sm bg-gray-100 rounded-lg disabled:opacity-30"
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
-                    {t('previous')}
+                    ← {t('previous')}
                 </button>
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-slate-400 font-medium">
                     {chunkIndex + 1} / {book.total_chunks}
                 </span>
                 <button
                     onClick={() => goToChunk(chunkIndex + 1)}
                     disabled={chunkIndex >= book.total_chunks - 1}
-                    className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg disabled:opacity-30"
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
                 >
-                    {t('next')}
+                    {t('next')} →
                 </button>
             </div>
 

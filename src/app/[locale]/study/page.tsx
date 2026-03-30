@@ -58,23 +58,29 @@ export default function StudyPage() {
     );
 
     if (loading) {
-        return <p className="text-gray-500">{t('loading')}</p>;
+        return (
+            <div className="fade-up space-y-4">
+                <div className="skeleton h-8 w-48 rounded-lg" />
+                <div className="skeleton h-72 rounded-xl" />
+            </div>
+        );
     }
 
     if (sessionDone) {
         return (
-            <div className="text-center py-16">
-                <h1 className="text-2xl font-bold mb-4">{t('sessionComplete')}</h1>
-                <p className="text-gray-500 mb-2">
+            <div className="fade-up flex flex-col items-center justify-center py-20 text-center">
+                <div className="text-6xl mb-4">{reviewed > 0 ? '🎉' : '✅'}</div>
+                <h1 className="text-2xl font-bold text-slate-900 mb-2">{t('sessionComplete')}</h1>
+                <p className="text-slate-500 mb-6 max-w-xs">
                     {reviewed > 0
                         ? t('reviewedCards', { count: reviewed })
                         : t('noCardsDue')}
                 </p>
                 <a
                     href="/"
-                    className="text-blue-600 hover:text-blue-800"
+                    className="inline-flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors"
                 >
-                    {t('backToLibrary')}
+                    ← {t('backToLibrary')}
                 </a>
             </div>
         );
@@ -82,101 +88,120 @@ export default function StudyPage() {
 
     const card = cards[currentIdx];
     const isCloze = card.mode === 'cloze';
+    const progressPercent = Math.round((currentIdx / cards.length) * 100);
 
     return (
-        <div>
-            <div className="flex justify-between items-center mb-6">
-                <h1 className="text-lg font-semibold">{t('title')}</h1>
-                <span className="text-sm text-gray-400">
+        <div className="fade-up">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-4">
+                <h1 className="text-base font-semibold text-slate-700">{t('title')}</h1>
+                <span className="text-sm font-medium text-slate-400">
                     {currentIdx + 1} / {cards.length}
                 </span>
             </div>
 
-            <div className="bg-white rounded-xl border border-gray-200 p-6 min-h-[300px] flex flex-col justify-between">
-                {/* Front */}
-                <div className="text-center">
+            {/* Progress bar */}
+            <div className="h-1 bg-slate-100 rounded-full overflow-hidden mb-5">
+                <div
+                    className="h-full bg-blue-500 rounded-full transition-all duration-500"
+                    style={{ width: `${progressPercent}%` }}
+                />
+            </div>
+
+            {/* Card */}
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                {/* Front — phrase */}
+                <div className="px-6 py-8 text-center min-h-[180px] flex flex-col items-center justify-center border-b border-slate-100">
                     {isCloze && card.context_html ? (
-                        <p className="text-lg" dir="auto">
-                            {card.context_html.replace(
-                                card.phrase_text,
-                                '______'
-                            )}
+                        <p className="text-lg text-slate-800 leading-relaxed" dir="auto">
+                            {card.context_html.replace(card.phrase_text, '______')}
                         </p>
                     ) : (
-                        <p className="text-2xl font-bold" dir="auto">
+                        <p className="text-3xl font-bold text-slate-900 tracking-tight" dir="auto">
                             {card.phrase_text}
                         </p>
                     )}
                     {card.pronunciation && !revealed && (
-                        <p className="text-gray-400 mt-2">{card.pronunciation}</p>
+                        <p className="text-slate-400 text-sm mt-3">{card.pronunciation}</p>
                     )}
                 </div>
 
                 {/* Back (revealed) */}
-                {revealed ? (
-                    <div className="mt-6 space-y-3">
-                        <div className="bg-blue-50 rounded-lg p-4 text-center">
-                            <p className="text-lg font-medium text-blue-800">
-                                {card.translation}
-                            </p>
-                        </div>
-                        {card.grammar_note && (
-                            <p className="text-sm text-gray-600">{card.grammar_note}</p>
-                        )}
-                        {card.examples && (() => {
-                            try {
-                                const exs = JSON.parse(card.examples) as Array<{ sentence: string; translation: string }>;
-                                return (
-                                    <div className="text-sm space-y-1">
-                                        {exs.slice(0, 2).map((ex, i) => (
-                                            <div key={i}>
-                                                <p dir="auto" className="font-medium">{ex.sentence}</p>
-                                                <p className="text-gray-500">{ex.translation}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                );
-                            } catch {
-                                return null;
-                            }
-                        })()}
+                <div className="px-6 py-5">
+                    {revealed ? (
+                        <div className="space-y-4">
+                            {/* Translation highlight */}
+                            <div className="bg-blue-50 rounded-xl px-4 py-3.5 text-center border border-blue-100">
+                                <p className="text-lg font-semibold text-blue-800">
+                                    {card.translation}
+                                </p>
+                            </div>
 
-                        {/* Grading buttons */}
-                        <div className="grid grid-cols-4 gap-2 pt-4">
-                            <button
-                                onClick={() => gradeCard(1)}
-                                className="py-2 bg-red-100 text-red-700 rounded-lg text-sm font-medium"
-                            >
-                                {t('again')}
-                            </button>
-                            <button
-                                onClick={() => gradeCard(3)}
-                                className="py-2 bg-yellow-100 text-yellow-700 rounded-lg text-sm font-medium"
-                            >
-                                {t('hard')}
-                            </button>
-                            <button
-                                onClick={() => gradeCard(4)}
-                                className="py-2 bg-green-100 text-green-700 rounded-lg text-sm font-medium"
-                            >
-                                {t('good')}
-                            </button>
-                            <button
-                                onClick={() => gradeCard(5)}
-                                className="py-2 bg-blue-100 text-blue-700 rounded-lg text-sm font-medium"
-                            >
-                                {t('easy')}
-                            </button>
+                            {card.pronunciation && (
+                                <p className="text-sm text-slate-400 text-center italic">{card.pronunciation}</p>
+                            )}
+
+                            {card.grammar_note && (
+                                <p className="text-sm text-slate-600 bg-slate-50 rounded-lg px-3 py-2">
+                                    {card.grammar_note}
+                                </p>
+                            )}
+
+                            {card.examples && (() => {
+                                try {
+                                    const exs = JSON.parse(card.examples) as Array<{ sentence: string; translation: string }>;
+                                    return (
+                                        <div className="space-y-2 text-sm">
+                                            {exs.slice(0, 2).map((ex, i) => (
+                                                <div key={i} className="border-l-2 border-slate-200 pl-3">
+                                                    <p dir="auto" className="font-medium text-slate-800">{ex.sentence}</p>
+                                                    <p className="text-slate-400 mt-0.5">{ex.translation}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                } catch {
+                                    return null;
+                                }
+                            })()}
+
+                            {/* Grading buttons */}
+                            <div className="grid grid-cols-4 gap-2 pt-2">
+                                <button
+                                    onClick={() => gradeCard(1)}
+                                    className="py-2.5 bg-red-50 text-red-600 border border-red-100 rounded-xl text-sm font-semibold hover:bg-red-100 active:scale-95 transition-all"
+                                >
+                                    {t('again')}
+                                </button>
+                                <button
+                                    onClick={() => gradeCard(3)}
+                                    className="py-2.5 bg-amber-50 text-amber-600 border border-amber-100 rounded-xl text-sm font-semibold hover:bg-amber-100 active:scale-95 transition-all"
+                                >
+                                    {t('hard')}
+                                </button>
+                                <button
+                                    onClick={() => gradeCard(4)}
+                                    className="py-2.5 bg-emerald-50 text-emerald-600 border border-emerald-100 rounded-xl text-sm font-semibold hover:bg-emerald-100 active:scale-95 transition-all"
+                                >
+                                    {t('good')}
+                                </button>
+                                <button
+                                    onClick={() => gradeCard(5)}
+                                    className="py-2.5 bg-blue-50 text-blue-600 border border-blue-100 rounded-xl text-sm font-semibold hover:bg-blue-100 active:scale-95 transition-all"
+                                >
+                                    {t('easy')}
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                ) : (
-                    <button
-                        onClick={() => setRevealed(true)}
-                        className="mt-6 w-full py-3 bg-gray-100 rounded-lg text-gray-700 font-medium hover:bg-gray-200"
-                    >
-                        {t('reveal')}
-                    </button>
-                )}
+                    ) : (
+                        <button
+                            onClick={() => setRevealed(true)}
+                            className="w-full py-3 bg-slate-900 text-white rounded-xl font-medium text-sm hover:bg-slate-800 active:scale-[0.99] transition-all"
+                        >
+                            {t('reveal')}
+                        </button>
+                    )}
+                </div>
             </div>
         </div>
     );

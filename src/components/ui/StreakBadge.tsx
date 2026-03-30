@@ -27,8 +27,8 @@ export default function StreakBadge() {
   if (!streak || streak.current_streak === 0) return null;
 
   return (
-    <span className="inline-flex items-center gap-1 bg-orange-100 text-orange-700 text-xs font-medium px-2 py-0.5 rounded-full">
-      {t('dayStreak', { count: streak.current_streak })}
+    <span className="inline-flex items-center gap-1 bg-orange-50 text-orange-600 border border-orange-200 text-xs font-semibold px-2.5 py-1 rounded-full">
+      🔥 {t('dayStreak', { count: streak.current_streak })}
     </span>
   );
 }

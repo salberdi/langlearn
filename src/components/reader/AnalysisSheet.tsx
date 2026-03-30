@@ -35,7 +35,6 @@ export default function AnalysisSheet({
     setLoading(true);
     setSaved(false);
 
-    // Close any existing connection
     eventSourceRef.current?.close();
 
     const params = new URLSearchParams({
@@ -106,90 +105,111 @@ export default function AnalysisSheet({
 
   return (
     <BottomSheet open={open} onClose={onClose}>
-      <div className="space-y-3">
-        <div className="flex items-start justify-between">
-          <h3 className="text-xl font-bold" dir="auto">
-            {phrase}
-          </h3>
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-2xl font-bold text-slate-900 leading-tight" dir="auto">
+              {phrase}
+            </h3>
+            {fields.pronunciation && (
+              <p className="text-slate-400 text-sm mt-1" dir="auto">
+                {fields.pronunciation}
+              </p>
+            )}
+          </div>
           <button
             onClick={handleSpeak}
-            className="text-blue-600 text-sm ml-2 shrink-0"
+            className="shrink-0 flex items-center gap-1.5 text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5 text-sm font-medium hover:bg-blue-100 transition-colors"
           >
-            {t('listen')}
+            🔊 {t('listen')}
           </button>
         </div>
 
-        {fields.pronunciation && (
-          <p className="text-gray-500 text-sm" dir="auto">
-            {fields.pronunciation}
-          </p>
-        )}
-
+        {/* Translation */}
         {fields.translation && (
-          <div className="bg-blue-50 rounded-lg p-3">
-            <p className="text-sm font-medium text-blue-800">
+          <div className="bg-blue-50 border border-blue-100 rounded-xl px-4 py-3">
+            <p className="text-xs font-semibold text-blue-400 uppercase tracking-wide mb-1">
+              Translation
+            </p>
+            <p className="text-lg font-semibold text-blue-900">
               {fields.translation}
             </p>
           </div>
         )}
 
+        {/* Grammar */}
         {fields.grammar && (
           <div>
-            <p className="text-xs font-medium text-gray-400 uppercase">{t('grammar')}</p>
-            <p className="text-sm">{fields.grammar}</p>
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">{t('grammar')}</p>
+            <p className="text-sm text-slate-700">{fields.grammar}</p>
           </div>
         )}
 
-        {fields.register && (
-          <div className="flex gap-4 text-sm">
-            <span className="text-gray-500">
-              {t('register')}: <span className="text-gray-900">{fields.register}</span>
-            </span>
+        {/* Register + Frequency tags */}
+        {(fields.register || fields.frequency) && (
+          <div className="flex flex-wrap gap-2">
+            {fields.register && (
+              <span className="text-xs bg-slate-100 text-slate-600 rounded-full px-3 py-1 font-medium">
+                {t('register')}: {fields.register}
+              </span>
+            )}
             {fields.frequency && (
-              <span className="text-gray-500">
-                {t('level')}: <span className="text-gray-900">{fields.frequency}</span>
+              <span className="text-xs bg-slate-100 text-slate-600 rounded-full px-3 py-1 font-medium">
+                {t('level')}: {fields.frequency}
               </span>
             )}
           </div>
         )}
 
+        {/* Mnemonic */}
         {fields.mnemonic && (
-          <div className="bg-yellow-50 rounded-lg p-3">
-            <p className="text-xs font-medium text-yellow-800 uppercase mb-1">
-              {t('memoryHook')}
+          <div className="bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
+            <p className="text-xs font-semibold text-amber-500 uppercase tracking-wide mb-1">
+              💡 {t('memoryHook')}
             </p>
-            <p className="text-sm text-yellow-900">{fields.mnemonic}</p>
+            <p className="text-sm text-amber-900">{fields.mnemonic}</p>
           </div>
         )}
 
+        {/* Examples */}
         {fields.examples && fields.examples.length > 0 && (
           <div>
-            <p className="text-xs font-medium text-gray-400 uppercase mb-2">
+            <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">
               {t('examples')}
             </p>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {fields.examples.map((ex, i) => (
-                <div key={i} className="text-sm">
-                  <p dir="auto" className="font-medium">
+                <div key={i} className="border-l-2 border-blue-200 pl-3">
+                  <p dir="auto" className="text-sm font-medium text-slate-800">
                     {ex.sentence}
                   </p>
-                  <p className="text-gray-500">{ex.translation}</p>
+                  <p className="text-xs text-slate-400 mt-0.5">{ex.translation}</p>
                 </div>
               ))}
             </div>
           </div>
         )}
 
+        {/* Loading indicator */}
         {loading && (
-          <p className="text-sm text-gray-400 animate-pulse">{t('analyzing')}</p>
+          <div className="flex items-center gap-2 text-sm text-slate-400">
+            <span className="w-3.5 h-3.5 border-2 border-slate-200 border-t-slate-400 rounded-full animate-spin" />
+            {t('analyzing')}
+          </div>
         )}
 
+        {/* Save button */}
         <button
           onClick={handleSave}
           disabled={saved}
-          className="w-full bg-green-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:text-gray-500"
+          className={`w-full py-3 rounded-xl text-sm font-semibold transition-all ${
+            saved
+              ? 'bg-slate-100 text-slate-400 cursor-default'
+              : 'bg-emerald-600 text-white hover:bg-emerald-700 active:bg-emerald-800 shadow-sm'
+          }`}
         >
-          {saved ? t('saved') : t('save')}
+          {saved ? `✓ ${t('saved')}` : t('save')}
         </button>
       </div>
     </BottomSheet>

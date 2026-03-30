@@ -4,19 +4,78 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f172a;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Better focus ring */
+:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Thin, elegant scrollbar */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Skeleton shimmer */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e8edf2 50%, #f1f5f9 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
+}
+
+/* Fade-in for page content */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-up {
+  animation: fadeUp 0.25s ease-out both;
 }
 
 /* Word/phrase highlighting in reader */
 .chunk-content [data-word] {
   user-select: text;
   -webkit-user-select: text;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background-color 0.1s;
+}
+
+.chunk-content [data-word]:hover {
+  background-color: rgba(37, 99, 235, 0.06);
 }
 
 /* Vocab status highlighting */
@@ -25,27 +84,29 @@ body {
 }
 
 .chunk-content .word-learning {
-  border-bottom: 2px solid #eab308;
+  border-bottom: 2px solid #f59e0b;
 }
 
 /* Ruby text styling for CJK */
 .chunk-content ruby rt {
   font-size: 0.5em;
-  color: #6b7280;
+  color: #64748b;
 }
 
 /* Reader prose spacing */
 .chunk-content p {
-  margin-bottom: 1em;
+  margin-bottom: 1.25em;
+  line-height: 1.8;
 }
 
 .chunk-content h1,
 .chunk-content h2,
 .chunk-content h3,
 .chunk-content h4 {
-  font-weight: bold;
-  margin-top: 1.5em;
-  margin-bottom: 0.5em;
+  font-weight: 700;
+  margin-top: 1.75em;
+  margin-bottom: 0.6em;
+  letter-spacing: -0.01em;
 }
 
 .chunk-content h1 { font-size: 1.5em; }
@@ -53,8 +114,9 @@ body {
 .chunk-content h3 { font-size: 1.15em; }
 
 .chunk-content blockquote {
-  border-left: 3px solid #d1d5db;
+  border-left: 3px solid #e2e8f0;
   padding-left: 1em;
-  color: #6b7280;
-  margin: 1em 0;
+  color: #64748b;
+  margin: 1.25em 0;
+  font-style: italic;
 }

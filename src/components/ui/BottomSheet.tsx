@@ -55,17 +55,18 @@ export default function BottomSheet({ open, onClose, children }: BottomSheetProp
   return (
     <>
       <div
-        className="fixed inset-0 bg-black/30 z-40"
+        className="fixed inset-0 bg-black/40 z-40 backdrop-blur-[2px]"
         onClick={onClose}
       />
       <div
         ref={sheetRef}
-        className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-xl max-h-[70vh] overflow-y-auto transition-transform duration-200"
+        className="fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-3xl shadow-2xl max-h-[80vh] overflow-y-auto transition-transform duration-200"
       >
-        <div className="flex justify-center pt-3 pb-1">
-          <div className="w-10 h-1 bg-gray-300 rounded-full" />
+        {/* Drag handle */}
+        <div className="flex justify-center pt-3 pb-2">
+          <div className="w-9 h-1 bg-slate-200 rounded-full" />
         </div>
-        <div className="px-4 pb-6 pb-[env(safe-area-inset-bottom)]">
+        <div className="px-5 pb-8" style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}>
           {children}
         </div>
       </div>

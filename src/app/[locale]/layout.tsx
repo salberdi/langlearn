@@ -1,6 +1,8 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations } from 'next-intl/server';
 import AuthButton from '@/components/ui/AuthButton';
+import StreakBadge from '@/components/ui/StreakBadge';
+import NavLinks from '@/components/ui/NavLinks';
 import type { Metadata } from 'next';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -22,25 +24,39 @@ export default async function LocaleLayout({
     const messages = await getMessages();
     const t = await getTranslations('Nav');
 
+    const navLinks = [
+        { href: '/', label: t('library') },
+        { href: '/upload', label: t('upload') },
+        { href: '/study', label: t('study') },
+        { href: '/review', label: t('review') },
+    ];
+
     return (
-        <>
-            <nav className="sticky top-0 z-50 bg-white border-b border-gray-200 px-4 py-3">
-                <div className="max-w-3xl mx-auto flex items-center justify-between">
-                    <a href="/" className="text-lg font-semibold">LangLearn</a>
-                    <div className="flex items-center gap-4 text-sm">
-                        <a href="/" className="text-blue-600 hover:text-blue-800">{t('library')}</a>
-                        <a href="/upload" className="text-blue-600 hover:text-blue-800">{t('upload')}</a>
-                        <a href="/study" className="text-blue-600 hover:text-blue-800">{t('study')}</a>
-                        <a href="/review" className="text-blue-600 hover:text-blue-800">{t('review')}</a>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+            <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm">
+                <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
+                    <div className="flex items-center gap-5">
+                        <a href="/" className="flex items-center gap-2 font-bold text-slate-900 shrink-0">
+                            <span className="text-xl leading-none">📚</span>
+                            <span className="text-base tracking-tight">LangLearn</span>
+                        </a>
+                        <div className="hidden sm:block">
+                            <NavLinks links={navLinks} />
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                        <StreakBadge />
                         <AuthButton />
                     </div>
                 </div>
+                {/* Mobile nav row */}
+                <div className="sm:hidden border-t border-slate-100 px-3 py-1.5">
+                    <NavLinks links={navLinks} />
+                </div>
             </nav>
             <main className="max-w-3xl mx-auto px-4 py-6">
-                <NextIntlClientProvider locale={locale} messages={messages}>
-                    {children}
-                </NextIntlClientProvider>
+                {children}
             </main>
-        </>
+        </NextIntlClientProvider>
     );
 }
