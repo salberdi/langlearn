@@ -5,6 +5,8 @@ import { routing } from '@/i18n/routing';
 
 const intlMiddleware = createIntlMiddleware(routing);
 
+const secret = process.env.AUTH_SECRET!;
+
 const locales = routing.locales as readonly string[];
 
 // Paths that bypass auth (but still need locale detection)
@@ -47,7 +49,8 @@ export default async function middleware(req: NextRequest) {
   // API routes: skip intl, just do auth
   if (isApiPath(pathname)) {
     if (!isPublicPath(pathname)) {
-      const token = await getToken({ req });
+      const isSecure = req.headers.get('x-forwarded-proto') === 'https';
+      const token = await getToken({ req, secret, secureCookie: isSecure });
       if (!token) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
       }
@@ -66,7 +69,8 @@ export default async function middleware(req: NextRequest) {
   }
 
   // Protected pages: auth first, then intl
-  const token = await getToken({ req });
+  const isSecure = req.headers.get('x-forwarded-proto') === 'https';
+  const token = await getToken({ req, secret, secureCookie: isSecure });
   if (!token) {
     const signInUrl = new URL('/auth/signin', req.url);
     return NextResponse.redirect(signInUrl);
