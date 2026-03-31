@@ -8,6 +8,8 @@ const intlMiddleware = createIntlMiddleware(routing);
 
 const { auth } = NextAuth(authConfig);
 
+const locales = routing.locales as readonly string[];
+
 // Paths that bypass auth (but still need locale detection)
 const publicPaths = [
   '/api/auth',
@@ -22,8 +24,20 @@ const publicPaths = [
   '/fonts',
 ];
 
+/** Strip leading locale prefix, e.g. /en/auth/signin → /auth/signin */
+function stripLocalePrefix(pathname: string): string {
+  for (const locale of locales) {
+    const prefix = `/${locale}`;
+    if (pathname === prefix || pathname.startsWith(`${prefix}/`)) {
+      return pathname.slice(prefix.length) || '/';
+    }
+  }
+  return pathname;
+}
+
 function isPublicPath(pathname: string) {
-  return publicPaths.some((p) => pathname.startsWith(p));
+  const bare = stripLocalePrefix(pathname);
+  return publicPaths.some((p) => bare.startsWith(p));
 }
 
 function isApiPath(pathname: string) {
