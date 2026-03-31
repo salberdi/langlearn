@@ -1,12 +1,9 @@
-import { NextResponse } from 'next/server';
-import NextAuth from 'next-auth';
+import { NextRequest, NextResponse } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 import createIntlMiddleware from 'next-intl/middleware';
-import { authConfig } from '@/auth.config';
 import { routing } from '@/i18n/routing';
 
 const intlMiddleware = createIntlMiddleware(routing);
-
-const { auth } = NextAuth(authConfig);
 
 const locales = routing.locales as readonly string[];
 
@@ -44,13 +41,16 @@ function isApiPath(pathname: string) {
   return pathname.startsWith('/api/');
 }
 
-export default auth((req) => {
+export default async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   // API routes: skip intl, just do auth
   if (isApiPath(pathname)) {
-    if (!req.auth && !isPublicPath(pathname)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!isPublicPath(pathname)) {
+      const token = await getToken({ req });
+      if (!token) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      }
     }
     return NextResponse.next();
   }
@@ -66,13 +66,14 @@ export default auth((req) => {
   }
 
   // Protected pages: auth first, then intl
-  if (!req.auth) {
+  const token = await getToken({ req });
+  if (!token) {
     const signInUrl = new URL('/auth/signin', req.url);
     return NextResponse.redirect(signInUrl);
   }
 
   return intlMiddleware(req);
-});
+}
 
 export const config = {
   matcher: [
