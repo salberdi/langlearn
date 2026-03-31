@@ -167,11 +167,29 @@ export default function ChunkRenderer({
     const container = containerRef.current;
     if (!container) return;
 
+    let clearTimer: ReturnType<typeof setTimeout> | null = null;
+
     function handleSelectionChange() {
       const selection = window.getSelection();
+
       if (!selection || selection.isCollapsed) {
-        setPendingSelection(null);
+        // On iOS, the selection briefly collapses when the user lifts their finger
+        // before the selection handles stabilize. Debounce the clear to avoid
+        // the button flickering away before the user can tap it.
+        if (clearTimer) clearTimeout(clearTimer);
+        clearTimer = setTimeout(() => {
+          clearTimer = null;
+          const sel = window.getSelection();
+          if (!sel || sel.isCollapsed || sel.toString().trim().length === 0) {
+            setPendingSelection(null);
+          }
+        }, 300);
         return;
+      }
+
+      if (clearTimer) {
+        clearTimeout(clearTimer);
+        clearTimer = null;
       }
 
       const text = selection.toString().trim();
@@ -180,8 +198,13 @@ export default function ChunkRenderer({
         return;
       }
 
-      // Only show button if selection is inside this chunk
-      if (!container!.contains(selection.anchorNode)) {
+      // Only show button if selection is inside this chunk.
+      // Check both anchorNode and focusNode since on mobile the anchor
+      // may be outside the container when dragging handles.
+      const insideChunk =
+        container!.contains(selection.anchorNode) ||
+        container!.contains(selection.focusNode);
+      if (!insideChunk) {
         setPendingSelection(null);
         return;
       }
@@ -198,12 +221,25 @@ export default function ChunkRenderer({
     }
 
     document.addEventListener('selectionchange', handleSelectionChange);
-    return () => document.removeEventListener('selectionchange', handleSelectionChange);
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+      if (clearTimer) clearTimeout(clearTimer);
+    };
   }, []);
 
+  // Capture the selection on pointerdown so we have it even if the tap
+  // triggers a selectionchange that clears pendingSelection before onClick fires.
+  const capturedSelectionRef = useRef<PendingSelection | null>(null);
+
+  function handleAnalyzePointerDown() {
+    capturedSelectionRef.current = pendingSelection;
+  }
+
   function handleAnalyzeClick() {
-    if (!pendingSelection) return;
-    const { text, context } = pendingSelection;
+    const captured = capturedSelectionRef.current ?? pendingSelection;
+    capturedSelectionRef.current = null;
+    if (!captured) return;
+    const { text, context } = captured;
     setPendingSelection(null);
     window.getSelection()?.removeAllRanges();
     onPhraseSelect(text, studyLang, context);
@@ -225,6 +261,7 @@ export default function ChunkRenderer({
       />
       {pendingSelection && (
         <button
+          onPointerDown={handleAnalyzePointerDown}
           onClick={handleAnalyzeClick}
           className="fixed bottom-6 left-4 right-4 bg-blue-600 text-white py-3 rounded-xl shadow-lg text-sm font-medium z-40 active:bg-blue-700"
           style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
