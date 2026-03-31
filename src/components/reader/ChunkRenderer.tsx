@@ -45,6 +45,19 @@ export default function ChunkRenderer({
       ALLOWED_ATTR: [],
     });
 
+    // Don't replace the DOM while the user has text selected inside this container.
+    // On Android, the vocab fetch completes while the user is mid-selection, triggering
+    // a re-injection that detaches selection anchor nodes and makes insideChunk = false.
+    const existingSel = window.getSelection();
+    if (existingSel && !existingSel.isCollapsed) {
+      if (
+        container.contains(existingSel.anchorNode) ||
+        container.contains(existingSel.focusNode)
+      ) {
+        return;
+      }
+    }
+
     container.innerHTML = sanitized;
 
     const useCJK = isCJK(studyLang) && tokensJson;
@@ -142,24 +155,28 @@ export default function ChunkRenderer({
       }
     }
 
-    // Apply vocab highlighting
-    if (vocabStatuses) {
-      const wordSpans = container.querySelectorAll('[data-word]');
-      wordSpans.forEach((span) => {
-        const word = span.getAttribute('data-word') ?? '';
-        const status = vocabStatuses[word.toLowerCase()];
-        if (status === 'new') {
-          span.classList.add('word-new');
-        } else if (status === 'learning') {
-          span.classList.add('word-learning');
-        }
-      });
-    }
-  }, [translatedHtml, tokensJson, studyLang, isRtl, vocabStatuses]);
+  }, [translatedHtml, tokensJson, studyLang, isRtl]);
 
   useEffect(() => {
     injectWordSpans();
   }, [injectWordSpans]);
+
+  // Apply vocab highlighting without replacing the DOM (so active selections are preserved).
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !vocabStatuses) return;
+    const wordSpans = container.querySelectorAll('[data-word]');
+    wordSpans.forEach((span) => {
+      span.classList.remove('word-new', 'word-learning');
+      const word = span.getAttribute('data-word') ?? '';
+      const status = vocabStatuses[word.toLowerCase()];
+      if (status === 'new') {
+        span.classList.add('word-new');
+      } else if (status === 'learning') {
+        span.classList.add('word-learning');
+      }
+    });
+  }, [vocabStatuses]);
 
   // Track text selection via selectionchange — the only event that fires reliably
   // on Android Chrome during native text selection (touchend/pointerup get cancelled).
