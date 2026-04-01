@@ -78,6 +78,10 @@ body {
   background-color: rgba(37, 99, 235, 0.06);
 }
 
+.chunk-content [data-word]:active {
+  background-color: rgba(37, 99, 235, 0.15);
+}
+
 /* Vocab status highlighting */
 .chunk-content .word-new {
   border-bottom: 2px solid #3b82f6;

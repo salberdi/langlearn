@@ -275,6 +275,18 @@ export default function ChunkRenderer({
         dir={isRtl ? 'rtl' : 'ltr'}
         className="chunk-content prose prose-lg max-w-none"
         style={{ lineHeight: 1.8, touchAction: 'auto', userSelect: 'text', WebkitUserSelect: 'text' }}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          const wordSpan = target.closest('[data-word]');
+          if (wordSpan) {
+            const selection = window.getSelection();
+            if (selection && !selection.isCollapsed) return;
+            const range = document.createRange();
+            range.selectNodeContents(wordSpan);
+            selection?.removeAllRanges();
+            selection?.addRange(range);
+          }
+        }}
       />
       {pendingSelection && (
         <button
