@@ -1,5 +1,5 @@
 export const MODELS = {
-  TRANSLATION: 'claude-opus-4-6',
+  TRANSLATION: 'claude-sonnet-4-6',
   PHRASE_ANALYSIS: 'claude-sonnet-4-6',
   WORD_DEFINITION: 'claude-haiku-4-5',
   TM_EXTRACTION: 'claude-haiku-4-5',
