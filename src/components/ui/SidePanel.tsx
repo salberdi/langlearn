@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface SidePanelProps {
   open: boolean;
@@ -12,6 +13,9 @@ export default function SidePanel({ open, onClose, children }: SidePanelProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const startYRef = useRef(0);
   const currentYRef = useRef(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
 
   // Swipe-down to close on mobile bottom sheet
   const handleTouchStart = useCallback((e: TouchEvent) => {
@@ -61,7 +65,9 @@ export default function SidePanel({ open, onClose, children }: SidePanelProps) {
     return () => window.removeEventListener('keydown', handleKey);
   }, [open, onClose]);
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <>
       {/* Mobile: bottom sheet with backdrop */}
       <div className={`md:hidden ${open ? '' : 'pointer-events-none'}`}>
@@ -112,6 +118,7 @@ export default function SidePanel({ open, onClose, children }: SidePanelProps) {
           </div>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
