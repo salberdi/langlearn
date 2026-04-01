@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslations } from 'next-intl';
-import BottomSheet from '@/components/ui/BottomSheet';
+import SidePanel from '@/components/ui/SidePanel';
 import type { AnalysisField } from '@/types';
 
 interface AnalysisSheetProps {
@@ -104,7 +104,7 @@ export default function AnalysisSheet({
   }
 
   return (
-    <BottomSheet open={open} onClose={onClose}>
+    <SidePanel open={open} onClose={onClose}>
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-3">
@@ -212,6 +212,6 @@ export default function AnalysisSheet({
           {saved ? `✓ ${t('saved')}` : t('save')}
         </button>
       </div>
-    </BottomSheet>
+    </SidePanel>
   );
 }
