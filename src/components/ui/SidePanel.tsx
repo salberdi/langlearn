@@ -94,7 +94,7 @@ export default function SidePanel({ open, onClose, children }: SidePanelProps) {
 
       {/* Desktop: right side panel */}
       <div
-        className={`hidden md:block fixed top-0 right-0 z-40 h-full w-[400px] transition-transform duration-300 ease-out ${
+        className={`hidden md:block fixed top-[3.5rem] right-0 z-[60] h-[calc(100%-3.5rem)] w-[400px] transition-transform duration-300 ease-out ${
           open ? 'translate-x-0' : 'translate-x-full'
         }`}
       >
