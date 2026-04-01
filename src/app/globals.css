@@ -49,20 +49,20 @@ body {
   border-radius: 6px;
 }
 
-/* Fade-in for page content */
+/* Fade-in for page content
+   NOTE: Do NOT use transform here — even translateY(0) creates a containing
+   block that breaks position:fixed descendants (e.g. the Analyze button). */
 @keyframes fadeUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 .fade-up {
-  animation: fadeUp 0.25s ease-out both;
+  animation: fadeUp 0.2s ease-out both;
 }
 
 /* Word/phrase highlighting in reader */
