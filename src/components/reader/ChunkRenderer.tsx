@@ -215,24 +215,34 @@ export default function ChunkRenderer({
         return;
       }
 
-      // Only show button if selection is inside this chunk.
-      // Check both anchorNode and focusNode since on mobile the anchor
-      // may be outside the container when dragging handles.
-      const insideChunk =
-        container!.contains(selection.anchorNode) ||
-        container!.contains(selection.focusNode);
+      // Only show button if selection overlaps this chunk.
+      // Use intersectsNode because on Android Chrome, highlighting across spans
+      // often snaps anchorNode/focusNode to document.body, bypassing .contains().
+      if (selection.rangeCount === 0) {
+        setPendingSelection(null);
+        return;
+      }
+      
+      const range = selection.getRangeAt(0);
+      const insideChunk = range.intersectsNode(container!);
       if (!insideChunk) {
         setPendingSelection(null);
         return;
       }
 
       const anchorNode = selection.anchorNode;
-      const parentEl =
-        anchorNode?.nodeType === Node.TEXT_NODE
-          ? anchorNode.parentElement
-          : (anchorNode as HTMLElement);
-      const paragraph = parentEl?.closest('p, div, blockquote, h1, h2, h3, h4, h5, h6');
-      const context = paragraph?.textContent?.trim() ?? text;
+      let context = text;
+      
+      if (anchorNode && container!.contains(anchorNode)) {
+        const parentEl =
+          anchorNode.nodeType === Node.TEXT_NODE
+            ? anchorNode.parentElement
+            : (anchorNode as HTMLElement);
+        const paragraph = parentEl?.closest('p, div, blockquote, h1, h2, h3, h4, h5, h6');
+        if (paragraph && container!.contains(paragraph)) {
+          context = paragraph.textContent?.trim() ?? text;
+        }
+      }
 
       setPendingSelection({ text, context });
     }
@@ -292,7 +302,7 @@ export default function ChunkRenderer({
         <button
           onPointerDown={handleAnalyzePointerDown}
           onClick={handleAnalyzeClick}
-          className="fixed bottom-6 left-4 right-4 bg-blue-600 text-white py-3 rounded-xl shadow-lg text-sm font-medium z-40 active:bg-blue-700"
+          className="fixed bottom-6 left-4 right-4 bg-blue-600 text-white py-3 rounded-xl shadow-lg text-sm font-medium z-[999] active:bg-blue-700"
           style={{ paddingBottom: 'max(12px, env(safe-area-inset-bottom))' }}
         >
           {t('analyze', { text: analyzeText })}
