@@ -135,7 +135,7 @@ export default function ReaderPage() {
         : 0;
 
     return (
-        <div className={`fade-up transition-[margin] duration-300 ${sheetOpen ? 'md:mr-[410px]' : ''}`}>
+        <div className="fade-up">
             {/* Book header */}
             <div className="mb-5 pb-4 border-b border-slate-100">
                 <div className="flex items-start justify-between gap-3">
