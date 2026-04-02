@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
   let ocrResults: { html: string; title: string; detectedLang: string }[];
   try {
     ocrResults = await Promise.all(
-      files.map((file, i) => extractTextFromImage(buffers[i].toString('base64'), file.type))
+      files.map((file, i) => extractTextFromImage(buffers[i].toString('base64'), file.type as SupportedMediaType))
     );
   } catch (err) {
     console.error('[upload-image] OCR failed:', err);
