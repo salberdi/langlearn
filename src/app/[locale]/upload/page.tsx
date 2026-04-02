@@ -33,10 +33,18 @@ export default function UploadPage() {
     const bookInputRef = useRef<HTMLInputElement>(null);
 
     // Image tab
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [imageEntries, setImageEntries] = useState<{ file: File; previewUrl: string }[]>([]);
     const [isImageDragOver, setIsImageDragOver] = useState(false);
     const imageInputRef = useRef<HTMLInputElement>(null);
+
+    // Revoke all object URLs on unmount
+    useEffect(() => {
+        return () => {
+            // eslint-disable-next-line react-hooks/exhaustive-deps
+            imageEntries.forEach((e) => URL.revokeObjectURL(e.previewUrl));
+        };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     useEffect(() => {
         fetch('/api/languages')
@@ -44,16 +52,22 @@ export default function UploadPage() {
             .then(setLanguages);
     }, []);
 
-    // Generate image preview when file selected
-    useEffect(() => {
-        if (!imageFile) {
-            setImagePreview(null);
-            return;
-        }
-        const url = URL.createObjectURL(imageFile);
-        setImagePreview(url);
-        return () => URL.revokeObjectURL(url);
-    }, [imageFile]);
+    function addImageFiles(newFiles: File[]) {
+        const valid = newFiles.filter((f) => IMAGE_TYPES.includes(f.type));
+        if (!valid.length) return;
+        setImageEntries((prev) => {
+            const existingKeys = new Set(prev.map((e) => `${e.file.name}:${e.file.size}`));
+            const deduped = valid.filter((f) => !existingKeys.has(`${f.name}:${f.size}`));
+            return [...prev, ...deduped.map((f) => ({ file: f, previewUrl: URL.createObjectURL(f) }))];
+        });
+    }
+
+    function removeImageEntry(index: number) {
+        setImageEntries((prev) => {
+            URL.revokeObjectURL(prev[index].previewUrl);
+            return prev.filter((_, i) => i !== index);
+        });
+    }
 
     async function handleBookSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -81,12 +95,12 @@ export default function UploadPage() {
 
     async function handleImageSubmit(e: React.FormEvent) {
         e.preventDefault();
-        if (!imageFile) return;
+        if (!imageEntries.length) return;
         setUploading(true);
         setError('');
 
         const formData = new FormData();
-        formData.append('file', imageFile);
+        imageEntries.forEach((entry) => formData.append('file', entry.file));
         formData.append('study_lang', studyLang);
         if (dialectNotes) formData.append('dialect_notes', dialectNotes);
         if (styleNotes) formData.append('style_notes', styleNotes);
@@ -115,10 +129,7 @@ export default function UploadPage() {
     function handleImageDrop(e: React.DragEvent) {
         e.preventDefault();
         setIsImageDragOver(false);
-        const dropped = e.dataTransfer.files[0];
-        if (dropped && IMAGE_TYPES.includes(dropped.type)) {
-            setImageFile(dropped);
-        }
+        addImageFiles(Array.from(e.dataTransfer.files));
     }
 
     const sharedFields = (
@@ -281,55 +292,94 @@ export default function UploadPage() {
             {tab === 'image' && (
                 <form onSubmit={handleImageSubmit} className="space-y-5">
                     <div>
-                        <label className="block text-sm font-semibold text-slate-700 mb-2">Image file</label>
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block text-sm font-semibold text-slate-700">
+                                Images
+                                {imageEntries.length > 0 && (
+                                    <span className="ml-2 text-xs font-normal text-slate-400">
+                                        {imageEntries.length} selected
+                                    </span>
+                                )}
+                            </label>
+                            {imageEntries.length > 0 && (
+                                <button
+                                    type="button"
+                                    onClick={() => imageInputRef.current?.click()}
+                                    className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition"
+                                >
+                                    + Add more
+                                </button>
+                            )}
+                        </div>
+
+                        <input
+                            ref={imageInputRef}
+                            type="file"
+                            accept={IMAGE_EXTENSIONS.join(',')}
+                            multiple
+                            onChange={(e) => {
+                                addImageFiles(Array.from(e.target.files || []));
+                                e.target.value = '';
+                            }}
+                            className="sr-only"
+                        />
+
+                        {/* Image thumbnails grid */}
+                        {imageEntries.length > 0 && (
+                            <div className="grid grid-cols-3 gap-2 mb-2">
+                                {imageEntries.map((entry, i) => (
+                                    <div key={`${entry.file.name}:${entry.file.size}:${i}`} className="relative group rounded-lg overflow-hidden border border-slate-200 bg-slate-50 aspect-square">
+                                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                                        <img
+                                            src={entry.previewUrl}
+                                            alt={entry.file.name}
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => removeImageEntry(i)}
+                                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-black/80"
+                                            title="Remove"
+                                        >
+                                            ×
+                                        </button>
+                                        <div className="absolute bottom-0 left-0 right-0 bg-black/40 px-1 py-0.5">
+                                            <p className="text-white text-[10px] truncate">{entry.file.name}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Drop zone — always visible, shrinks when images are present */}
                         <div
                             onClick={() => imageInputRef.current?.click()}
                             onDragOver={(e) => { e.preventDefault(); setIsImageDragOver(true); }}
                             onDragLeave={() => setIsImageDragOver(false)}
                             onDrop={handleImageDrop}
-                            className={`relative cursor-pointer rounded-xl border-2 border-dashed transition-all duration-150 overflow-hidden ${
+                            className={`relative cursor-pointer rounded-xl border-2 border-dashed transition-all duration-150 ${
                                 isImageDragOver
                                     ? 'border-blue-400 bg-blue-50'
-                                    : imageFile
-                                    ? 'border-emerald-300 bg-emerald-50'
                                     : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white'
-                            }`}
+                            } ${imageEntries.length > 0 ? 'py-3' : 'px-6 py-8'}`}
                         >
-                            <input
-                                ref={imageInputRef}
-                                type="file"
-                                accept={IMAGE_EXTENSIONS.join(',')}
-                                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-                                className="sr-only"
-                                required
-                            />
-                            {imagePreview ? (
-                                <div className="relative">
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                        src={imagePreview}
-                                        alt="Preview"
-                                        className="w-full max-h-64 object-contain p-2"
-                                    />
-                                    <div className="px-4 pb-3 text-center">
-                                        <p className="font-semibold text-emerald-700 text-sm">{imageFile!.name}</p>
-                                        <p className="text-emerald-500 text-xs mt-0.5">
-                                            {(imageFile!.size / 1024 / 1024).toFixed(2)} MB — click to change
-                                        </p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="px-6 py-8 text-center">
-                                    <div className="text-3xl mb-2">🖼️</div>
-                                    <p className="font-semibold text-slate-700 text-sm">
-                                        {isImageDragOver ? 'Drop image here' : 'Drag & drop or click to browse'}
-                                    </p>
-                                    <p className="text-slate-400 text-xs mt-1">JPEG, PNG, WebP, or GIF · max 5 MB</p>
-                                </div>
-                            )}
+                            <div className="text-center">
+                                {imageEntries.length === 0 && <div className="text-3xl mb-2">🖼️</div>}
+                                <p className="font-semibold text-slate-700 text-sm">
+                                    {isImageDragOver
+                                        ? 'Drop images here'
+                                        : imageEntries.length > 0
+                                        ? 'Drop more images here'
+                                        : 'Drag & drop or click to browse'}
+                                </p>
+                                {imageEntries.length === 0 && (
+                                    <p className="text-slate-400 text-xs mt-1">JPEG, PNG, WebP, or GIF · max 5 MB each</p>
+                                )}
+                            </div>
                         </div>
+
                         <p className="text-xs text-slate-400 mt-2">
-                            Claude will read the text in your image and translate it for you.
+                            Claude will read the text in your image{imageEntries.length > 1 ? 's' : ''} and translate {imageEntries.length > 1 ? 'them' : 'it'} for you.
                         </p>
                     </div>
 
@@ -344,7 +394,7 @@ export default function UploadPage() {
 
                     <button
                         type="submit"
-                        disabled={!imageFile || uploading}
+                        disabled={!imageEntries.length || uploading}
                         className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold text-sm hover:bg-blue-700 active:bg-blue-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-sm"
                     >
                         {uploading ? (
@@ -352,6 +402,8 @@ export default function UploadPage() {
                                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 Extracting text & translating...
                             </span>
+                        ) : imageEntries.length > 1 ? (
+                            `Extract & Translate ${imageEntries.length} Images`
                         ) : (
                             'Extract & Translate'
                         )}

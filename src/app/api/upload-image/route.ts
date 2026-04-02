@@ -79,13 +79,13 @@ export async function POST(request: NextRequest) {
   if (errorResponse) return errorResponse;
 
   const formData = await request.formData();
-  const file = formData.get('file') as File | null;
+  const files = formData.getAll('file').filter((f): f is File => f instanceof File);
   const studyLang = formData.get('study_lang') as string | null;
   const uiLang = (formData.get('ui_lang') as string) || 'en';
   const dialectNotes = formData.get('dialect_notes') as string | null;
   const styleNotes = formData.get('style_notes') as string | null;
 
-  if (!file) {
+  if (!files.length) {
     return NextResponse.json({ error: 'No file provided' }, { status: 400 });
   }
 
@@ -93,27 +93,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'study_lang is required' }, { status: 400 });
   }
 
-  if (file.size > MAX_IMAGE_SIZE) {
-    return NextResponse.json(
-      { error: 'Image too large (max 5MB)' },
-      { status: 400 }
-    );
+  for (const file of files) {
+    if (file.size > MAX_IMAGE_SIZE) {
+      return NextResponse.json(
+        { error: `"${file.name}" is too large (max 5MB per image)` },
+        { status: 400 }
+      );
+    }
+    if (!isSupportedType(file.type)) {
+      return NextResponse.json(
+        { error: 'Unsupported image type. Use JPEG, PNG, WebP, or GIF.' },
+        { status: 400 }
+      );
+    }
   }
 
-  if (!isSupportedType(file.type)) {
-    return NextResponse.json(
-      { error: 'Unsupported image type. Use JPEG, PNG, WebP, or GIF.' },
-      { status: 400 }
-    );
-  }
+  // Read all file buffers
+  const buffers = await Promise.all(files.map((f) => f.arrayBuffer().then((ab) => Buffer.from(ab))));
 
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const base64Data = buffer.toString('base64');
-
-  // OCR: extract text from image via Claude vision
-  let ocrResult: { html: string; title: string; detectedLang: string };
+  // OCR all images concurrently via Claude vision
+  let ocrResults: { html: string; title: string; detectedLang: string }[];
   try {
-    ocrResult = await extractTextFromImage(base64Data, file.type);
+    ocrResults = await Promise.all(
+      files.map((file, i) => extractTextFromImage(buffers[i].toString('base64'), file.type))
+    );
   } catch (err) {
     console.error('[upload-image] OCR failed:', err);
     return NextResponse.json(
@@ -122,16 +125,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { html: fullHtml, title, detectedLang: documentLang } = ocrResult;
+  // Combine all OCR results into a single document
+  const fullHtml = ocrResults.map((r) => r.html).join('\n');
+  const title = ocrResults[0].title;
+  const documentLang = ocrResults[0].detectedLang;
 
   if (!fullHtml.trim()) {
     return NextResponse.json(
-      { error: 'No text found in the image.' },
+      { error: 'No text found in the image(s).' },
       { status: 422 }
     );
   }
 
-  // Chunk the extracted HTML (images are usually one chunk, but handle large text gracefully)
   const contentChunks = chunkHtml(fullHtml);
   const rtl = isRtl(studyLang);
   const now = new Date();
@@ -155,15 +160,17 @@ export async function POST(request: NextRequest) {
     .returning();
   const bookResult = bookRows[0];
 
-  // Archive original image to S3
-  const ext = file.type.split('/')[1].replace('jpeg', 'jpg');
-  const s3Key = `uploads/${user.id}/${bookResult.id}/original.${ext}`;
-  try {
-    await uploadToS3(s3Key, buffer, file.type);
-    await db.update(books).set({ upload_s3_key: s3Key }).where(eq(books.id, bookResult.id));
-  } catch (err) {
-    console.error('[upload-image] S3 archival failed:', err);
-  }
+  // Archive all images to S3 (fire-and-forget, don't block response)
+  Promise.allSettled(
+    files.map(async (file, i) => {
+      const ext = file.type.split('/')[1].replace('jpeg', 'jpg');
+      const s3Key = `uploads/${user.id}/${bookResult.id}/original_${i}.${ext}`;
+      await uploadToS3(s3Key, buffers[i], file.type);
+      if (i === 0) {
+        await db.update(books).set({ upload_s3_key: s3Key }).where(eq(books.id, bookResult.id));
+      }
+    })
+  ).catch((err) => console.error('[upload-image] S3 archival failed:', err));
 
   // Insert chunks
   await db.insert(chunks).values(
