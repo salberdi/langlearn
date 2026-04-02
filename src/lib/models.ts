@@ -4,6 +4,7 @@ export const MODELS = {
   WORD_DEFINITION: 'claude-haiku-4-5',
   TM_EXTRACTION: 'claude-haiku-4-5',
   LANG_DETECTION: 'claude-haiku-4-5',
+  IMAGE_OCR: 'claude-sonnet-4-6',
 } as const;
 
 export type ModelKey = keyof typeof MODELS;
